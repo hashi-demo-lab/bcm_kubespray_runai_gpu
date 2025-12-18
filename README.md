@@ -1,324 +1,246 @@
-# AI IaC Consumer Template
+# vSphere Kubernetes Cluster Deployment with Kubespray
 
-A prescriptive agent workflow template for AI-assisted Infrastructure as Code development, powered by **Claude Code** and **HCP Terraform**.
+Terraform configuration for deploying a 3-node Kubernetes cluster on VMware vSphere infrastructure using Kubespray.
 
 ## Overview
 
-This template provides an opinionated, end-to-end workflow for generating, validating, and deploying Terraform infrastructure using AI agents. It leverages the [**GitHub Spec Kit**](https://github.com/github/spec-kit) methodology - a structured approach to specification-driven development that guides AI agents through:
+This Terraform project automates the provisioning of three Ubuntu virtual machines on vSphere and deploys a production-ready Kubernetes cluster using Kubespray Ansible playbooks.
 
-1. **Specification** - Defining infrastructure requirements in natural language
-2. **Planning** - Generating detailed implementation plans with architecture decisions
-3. **Task Generation** - Breaking down plans into actionable, dependency-ordered tasks
-4. **Implementation** - Executing tasks to produce production-ready Terraform code
-5. **Deployment** - Applying infrastructure via HCP Terraform with remote state management
+**Cluster Architecture:**
+- 1x Control Plane Node (k8s-master-01): Runs Kubernetes control plane components and etcd
+- 2x Worker Nodes (k8s-worker-01, k8s-worker-02): Run containerized workloads
 
-### Key Features
-
-- **Devcontainer-based Development** - Fully configured development environment with all tools pre-installed
-- **HCP Terraform Integration** - Remote execution, state management, and workspace automation
-- **SpecKit Workflow** - Structured AI agent workflow for consistent, high-quality infrastructure code
-- **Non-interactive Testing** - Automated end-to-end testing capability using the `github-speckit-tester` skill
-- **Best Practice Defaults** - Pre-configured for AWS with security and cost optimization in mind
-- **Pre-configured MCP Servers** - Model Context Protocol servers for enhanced AI capabilities
-
-### MCP Servers
-
-This template includes pre-configured [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers that extend Claude's capabilities:
-
-| Server | Description |
-|--------|-------------|
-| **terraform** | [HCP Terraform MCP Server](https://github.com/hashicorp/terraform-mcp-server) - Workspace management, run execution, registry lookups, and provider documentation |
-| **aws-knowledge-mcp-server** | [AWS Knowledge MCP](https://awslabs.github.io/mcp/) - AWS documentation search, best practices, and service recommendations |
-
-MCP servers are automatically configured via `.mcp.json` and available when running in the devcontainer.
+**Key Features:**
+- Automated VM provisioning with static IP configuration
+- Kubespray-based Kubernetes deployment
+- CNI plugin support (Calico, Flannel, Cilium)
+- HCP Terraform remote state management
+- Security-first design with SSH key-based authentication
 
 ## Prerequisites
 
-Before using this template, ensure you have the following installed and configured:
+### Infrastructure Requirements
 
-### Required Software
+- VMware vSphere environment (vCenter/ESXi)
+- Ubuntu LTS VM template (tested with 22.04)
+- Network with static IP allocation
+- Minimum 6 vCPUs and 12GB RAM available (2 CPU / 4GB per node)
 
-- **Docker Desktop** - Required for running the devcontainer
-  - [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
+### Software Requirements
 
-- **VS Code** - Recommended IDE with devcontainer support
-  - [Download VS Code](https://code.visualstudio.com/)
-  - Install the "Dev Containers" extension
+- Terraform >= 1.5.0
+- HCP Terraform account and organization access
+- SSH key pair for VM access
+- Kubespray repository cloned locally
 
-### Required Environment Variables
+### vSphere Permissions
 
-Set these in your local environment before opening the devcontainer.
+The following vSphere permissions are required:
+- Virtual Machine > Configuration > All
+- Virtual Machine > Interaction > All
+- Datastore > Allocate space
+- Network > Assign network
+- Resource > Assign virtual machine to resource pool
 
-| Variable | Description |
-|----------|-------------|
-| `GITHUB_TOKEN` | GitHub Personal Access Token with repo permissions. **Branch protection recommended** for production repositories. |
-| `TEAM_TFE_TOKEN` | **HCP Terraform Team Token** - Must be a Team API Token (not user/org token) associated with a dedicated project for workspace management |
+## Quick Start
 
-> **Important:** The `TEAM_TFE_TOKEN` must be a **Team API Token**, not a user or organization token. Create one in HCP Terraform under **Settings > Teams > [Your Team] > Team API Token**. The team should have access to a dedicated project where workspaces will be created.
+### 1. Configure Variables
 
-### HCP Terraform Setup (Pre-requisite)
-
-Before using this template, you must configure HCP Terraform with an isolated environment for testing:
-
-1. **Create a Dedicated Project**
-   - Navigate to **Projects** in HCP Terraform
-   - Create a new project (e.g., `sandbox`)
-   - This isolates test workspaces from production infrastructure
-
-2. **Create a Dedicated Team**
-   - Go to **Settings > Teams**
-   - Create a new team and assign it to the dedicated project
-   - Configure **Project Team Access** with the following permissions:
-
-     **Project Access:**
-     - **Read** - Baseline permission for reading the project record
-     - **Create Workspaces** - Create workspaces in the project (grants read access on all workspaces)
-     - **Delete Workspaces** - Delete workspaces in the project
-
-     **Workspace Permissions:**
-     - **Read Variables** - Access existing variable values for validation
-     - **Read State** - View Terraform state for existing resources
-     - **Write State** - Update state during apply operations
-     - **Download Sentinel Mocks** - Download Sentinel mock data for policy testing
-     - **Manage Workspace Run Tasks** - Assign and unassign run tasks on workspaces
-     - **Lock/Unlock Workspaces** - Control workspace locking for safe operations
-
-3. **Generate Team API Token**
-   - In **Settings > Teams > [Your Team]**
-   - Click **"Create a team token"**
-   - Save this as your `TEAM_TFE_TOKEN`
-
-4. **Configure Credential Inheritance**
-   - Create a Variable Set with AWS credentials (see below)
-   - Attach the Variable Set to your dedicated project
-   - All workspaces created in the project will inherit credentials automatically
-
-### AWS Credentials
-
-AWS credentials should **not** be set locally. Instead, they are inherited from an HCP Terraform Variable Set attached to your project or workspace.
-
-**Recommended approaches (in order of preference):**
-
-1. **Dynamic Provider Credentials** (Recommended) - Use OIDC federation between HCP Terraform and AWS for short-lived, automatically rotated credentials. See [Dynamic Provider Credentials](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/dynamic-provider-credentials/aws-configuration).
-
-2. **Variable Set with Environment Variables** - Create a Variable Set in HCP Terraform containing:
-   - `AWS_ACCESS_KEY_ID` (environment variable, sensitive)
-   - `AWS_SECRET_ACCESS_KEY` (environment variable, sensitive)
-   - `AWS_REGION` (environment variable)
-
-   Attach the Variable Set to your project so all workspaces inherit the credentials.
-
-> **Note:** Variable Sets can be configured at **Settings > Variable Sets** in HCP Terraform. Attach them to projects for automatic inheritance by all workspaces in that project.
-
-**For Bash** - Add to `~/.bashrc` or `~/.bash_profile`:
+Copy the example tfvars file and update with your environment details:
 
 ```bash
-# GitHub Personal Access Token with repo permissions
-export GITHUB_TOKEN="ghp_your_token_here"
-
-# HCP Terraform Team Token - MUST be a Team Token with a dedicated project
-# Create at: HCP Terraform > Settings > Teams > [Your Team] > Team API Token
-export TEAM_TFE_TOKEN="your_terraform_team_token_here"
+cp sandbox.auto.tfvars.example sandbox.auto.tfvars
 ```
 
-**For Zsh** - Add to `~/.zshrc`:
+Edit `sandbox.auto.tfvars` and configure your vSphere infrastructure, network, and Kubernetes settings.
 
-```zsh
-# GitHub Personal Access Token with repo permissions
-export GITHUB_TOKEN="ghp_your_token_here"
+### 2. Configure HCP Terraform
 
-# HCP Terraform Team Token - MUST be a Team Token with a dedicated project
-# Create at: HCP Terraform > Settings > Teams > [Your Team] > Team API Token
-export TEAM_TFE_TOKEN="your_terraform_team_token_here"
-```
-
-After adding, reload your shell configuration:
+Set your HCP Terraform organization token:
 
 ```bash
-# Bash
-source ~/.bashrc
-
-# Zsh
-source ~/.zshrc
+terraform login
 ```
 
-## Getting Started
+Update `override.tf` to point to your workspace.
 
-### 1. Create Repository from Template
+### 3. Configure Workspace Variables
 
-1. Navigate to this repository on GitHub
-2. Click **"Use this template"** button
-3. Select **"Create a new repository"**
-4. Name your repository and configure settings
-5. Click **"Create repository"**
+In your HCP Terraform workspace, configure sensitive variables for SSH keys and vSphere credentials.
 
-### 2. Clone and Open in VS Code
+### 4. Deploy Infrastructure
 
 ```bash
-# Clone your new repository
-git clone https://github.com/YOUR_ORG/your-new-repo.git
-
-# Open in VS Code
-code your-new-repo
+terraform init
+terraform plan
+terraform apply
 ```
 
-### 3. Open in Devcontainer
+Total deployment time: Approximately 16-25 minutes
 
-When VS Code opens the repository, you should see a prompt:
+### 5. Access the Cluster
 
-> **"Folder contains a Dev Container configuration file. Reopen folder to develop in a container?"**
+Retrieve kubectl configuration from outputs and configure local kubectl access.
 
-Click **"Reopen in Container"** to launch the devcontainer with all tools pre-configured.
+## Architecture
 
-If the prompt doesn't appear, use the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select:
-> **"Dev Containers: Reopen in Container"**
+This project uses the approved private module `tfo-apj-demos/single-virtual-machine/vsphere` v1.4.2 from the HCP Terraform private registry, adhering to the module-first architecture principle.
 
-## Example Test Prompts
+**Deployment Flow:**
+1. Terraform provisions 3 VMs via private module
+2. null_resource waits for SSH connectivity on all VMs
+3. local_file generates Kubespray inventory from VM outputs
+4. ansible_playbook executes Kubespray cluster deployment
+5. Kubernetes cluster becomes operational
 
-The following example prompts demonstrate various infrastructure patterns. These are designed for use with the `github-speckit-tester` skill for non-interactive, end-to-end testing.
+## Network Requirements
 
-**To run a test prompt**, invoke the skill first then provide the infrastructure requirements:
+The following ports must be accessible between cluster nodes:
 
-```text
-Using the github-speckit-tester skill non-interactively.
+**Control Plane:**
+- 6443: Kubernetes API server
+- 2379-2380: etcd server client API
+- 10250: Kubelet API
+- 10259: kube-scheduler
+- 10257: kube-controller-manager
 
-[Your infrastructure requirements here]
+**Worker Nodes:**
+- 10250: Kubelet API
+- 30000-32767: NodePort Services
 
-HCP Terraform: Organization: [org], Project: [project]
-Workspace: [prefix]_<GITHUB_REPO_NAME>
-```
+**All Nodes:**
+- 22: SSH (for Ansible)
+- CNI-specific ports (e.g., Calico: 179 BGP)
 
-> **Workspace Naming:** Use `<GITHUB_REPO_NAME>` as a placeholder - it will be automatically replaced with your repository name to ensure unique workspace names across template instances.
->
-> **Organization:** Replace `<YOUR_TFC_ORG>` with your HCP Terraform organization name. If your token only has access to a single organization, this can be omitted.
->
-> **Testing Only:** The non-interactive approach shown in these examples is **recommended for testing and evaluation only**. For production use, remove the non-interactive directive to enable human-in-the-loop review of plans before applying infrastructure changes.
+## Edge Cases and Error Handling
 
-### EC2 Instance with ALB and Nginx
+**Insufficient vSphere Resources (FR-008):**
+- Module will fail with clear error message about resource constraints
+- Resolution: Free up resources or adjust VM size parameters
 
-```text
-Using the github-speckit-tester skill non-interactively.
+**Network Connectivity Issues:**
+- SSH wait timeout (5 minutes) will halt deployment
+- Resolution: Verify firewall rules and network configuration
 
-Provision using Terraform:
-- EC2 instances across 2 AZs
-- HTTPS and Nginx with basic static content
-- ALB (Application Load Balancer)
-- AWS Region: ap-southeast-2
-- Use existing default VPC
-- Environment: Development (minimal cost)
+**Kubespray Deployment Failures:**
+- Ansible playbook errors captured in Terraform output
+- Resolution: Check Ansible logs, verify OS compatibility, ensure all nodes are accessible
 
-HCP Terraform: Organization: <YOUR_TFC_ORG>, Project: sandbox
-Workspace: sandbox_ec2_<GITHUB_REPO_NAME>
-```
+**State Inconsistency:**
+- If deployment fails mid-execution, run `terraform refresh` to sync state
+- Consider `terraform destroy` and retry for clean slate
 
-### Serverless Application
+## Security Considerations
 
-```text
-Using the github-speckit-tester skill non-interactively.
+**SEC-001**: No hardcoded credentials - all sensitive data via HCP Terraform workspace variables
+**SEC-002**: SSH key-based authentication - keys stored as sensitive variables
+**SEC-007**: Security profile parameter enforced per organizational standards
+**SEC-008**: Terraform state encrypted at rest and in transit via HCP Terraform
+**SEC-009**: SSH access should be restricted in production (consider bastion host pattern)
 
-Provision using Terraform:
-- Lambda functions with API Gateway
-- DynamoDB tables
-- S3 buckets for static assets
-- CloudWatch Logs and alarms
-- AWS Region: ap-southeast-2
-- Environment: Development (minimal cost)
+## Troubleshooting
 
-HCP Terraform: Organization: <YOUR_TFC_ORG>, Project: sandbox
-Workspace: sandbox_serverless_<GITHUB_REPO_NAME>
-```
+**VM Provisioning Failures:**
+- Check vSphere capacity and permissions
+- Verify Ubuntu template exists and is accessible
+- Review module logs in Terraform output
 
-### CloudFront with Static Content
+**SSH Connectivity Timeouts:**
+- Verify firewall rules allow SSH traffic
+- Ensure SSH keys are correctly configured in workspace variables
+- Check VM network configuration and IP allocation
 
-```text
-Using the github-speckit-tester skill non-interactively.
+**Kubespray Execution Errors:**
+- Verify Kubespray playbook path is correct
+- Check Ubuntu VM meets minimum requirements (2 CPU, 4GB RAM)
+- Review Ansible logs for specific error messages
+- Ensure Python is installed on all VMs
 
-Provision using Terraform:
-- S3 bucket for static content storage
-- CloudFront distribution with OAI
-- SSL/TLS certificate via ACM
-- CloudWatch metrics and alarms
-- AWS Region: us-east-1 (ACM certs), S3 bucket: ap-southeast-2
-- Environment: Development (minimal cost)
+## Documentation
 
-HCP Terraform: Organization: <YOUR_TFC_ORG>, Project: sandbox
-Workspace: sandbox_cloudfront_<GITHUB_REPO_NAME>
-```
+- Feature Specification: `/workspace/specs/001-vsphere-k8s-kubespray/spec.md`
+- Implementation Plan: `/workspace/specs/001-vsphere-k8s-kubespray/plan.md`
+- Data Model: `/workspace/specs/001-vsphere-k8s-kubespray/data-model.md`
+- Task List: `/workspace/specs/001-vsphere-k8s-kubespray/tasks.md`
 
-### Auto-Scaling Group with ALB
-
-```text
-Using the github-speckit-tester skill non-interactively.
-
-Provision using Terraform:
-- Auto-scaling group with launch template
-- Target tracking policies
-- ALB with health checks across 2 AZs
-- CloudWatch dashboards
-- AWS Region: ap-southeast-2
-- Environment: Development (minimal cost)
-
-HCP Terraform: Organization: <YOUR_TFC_ORG>, Project: sandbox
-Workspace: sandbox_asg_<GITHUB_REPO_NAME>
-```
-
-### ElastiCache Redis with Application Tier
-
-```text
-Using the github-speckit-tester skill non-interactively.
-
-Provision using Terraform:
-- ElastiCache Redis cluster in private subnets
-- ECS across 2 AZs for application tier
-- ALB with HTTPS
-- AWS Region: ap-southeast-2
-- Environment: Development (minimal cost)
-
-HCP Terraform: Organization: <YOUR_TFC_ORG>, Project: sandbox
-Workspace: sandbox_elasticache_<GITHUB_REPO_NAME>
-```
-
-### SQS with Lambda and SNS
-
-```text
-Using the github-speckit-tester skill non-interactively.
-
-Provision using Terraform:
-- SQS queue with dead letter queue
-- Lambda function triggered by SQS messages
-- SNS topic for notifications
-- CloudWatch alarms
-- AWS Region: ap-southeast-2
-- Environment: Development (minimal cost)
-
-HCP Terraform: Organization: <YOUR_TFC_ORG>, Project: sandbox
-Workspace: sandbox_sqs_<GITHUB_REPO_NAME>
-```
-
----
+## Terraform Documentation
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- BEGIN_TF_DOCS -->
 ## Requirements
 
-No requirements.
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.0 |
+| <a name="requirement_ansible"></a> [ansible](#requirement\_ansible) | ~> 1.3.0 |
+| <a name="requirement_local"></a> [local](#requirement\_local) | ~> 2.4.0 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.2.0 |
 
 ## Providers
 
-No providers.
+| Name | Version |
+|------|---------|
+| <a name="provider_ansible"></a> [ansible](#provider\_ansible) | 1.3.0 |
+| <a name="provider_local"></a> [local](#provider\_local) | 2.4.1 |
+| <a name="provider_null"></a> [null](#provider\_null) | 3.2.4 |
 
 ## Modules
 
-No modules.
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_k8s_control_plane_01"></a> [k8s\_control\_plane\_01](#module\_k8s\_control\_plane\_01) | app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere | 1.4.2 |
+| <a name="module_k8s_worker_01"></a> [k8s\_worker\_01](#module\_k8s\_worker\_01) | app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere | 1.4.2 |
+| <a name="module_k8s_worker_02"></a> [k8s\_worker\_02](#module\_k8s\_worker\_02) | app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere | 1.4.2 |
 
 ## Resources
 
-No resources.
+| Name | Type |
+|------|------|
+| [ansible_playbook.kubespray_cluster](https://registry.terraform.io/providers/ansible/ansible/latest/docs/resources/playbook) | resource |
+| [local_file.kubespray_inventory](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/file) | resource |
+| [null_resource.wait_for_vms](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 
 ## Inputs
 
-No inputs.
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_backup_policy"></a> [backup\_policy](#input\_backup\_policy) | Backup policy for VM data protection. Maps to module 'backup\_policy' input. | `string` | `"daily"` | no |
+| <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Kubernetes cluster name identifier (FR-007) | `string` | `"vsphere-k8s-cluster"` | no |
+| <a name="input_cni_plugin"></a> [cni\_plugin](#input\_cni\_plugin) | Container Network Interface plugin for pod networking (per FR-010) | `string` | `"calico"` | no |
+| <a name="input_control_plane_vm_size"></a> [control\_plane\_vm\_size](#input\_control\_plane\_vm\_size) | VM size tier for control plane node (must meet minimum 2 CPU, 4GB RAM per FR-005). Maps to module 'size' input. | `string` | `"medium"` | no |
+| <a name="input_environment"></a> [environment](#input\_environment) | Deployment environment classification (dev, staging, prod) (FR-002) | `string` | n/a | yes |
+| <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Target Kubernetes version for deployment (determined by Kubespray compatibility) (FR-009) | `string` | `"v1.28.5"` | no |
+| <a name="input_kubespray_playbook_path"></a> [kubespray\_playbook\_path](#input\_kubespray\_playbook\_path) | Path to Kubespray cluster.yml playbook file (FR-011) | `string` | `"./kubespray/cluster.yml"` | no |
+| <a name="input_kubespray_version"></a> [kubespray\_version](#input\_kubespray\_version) | Kubespray release version or Git tag (FR-011) | `string` | `"v2.24.0"` | no |
+| <a name="input_security_profile"></a> [security\_profile](#input\_security\_profile) | Security profile classification for VM hardening (per SEC-007). Maps to module 'security\_profile' input. | `string` | `"web-server"` | no |
+| <a name="input_service_tier"></a> [service\_tier](#input\_service\_tier) | Service tier classification for resource allocation. Maps to module 'tier' input. | `string` | `"gold"` | no |
+| <a name="input_ssh_private_key"></a> [ssh\_private\_key](#input\_ssh\_private\_key) | SSH private key content for VM authentication (per SEC-002, stored in HCP Terraform) (FR-013) | `string` | n/a | yes |
+| <a name="input_ssh_private_key_path"></a> [ssh\_private\_key\_path](#input\_ssh\_private\_key\_path) | Path to SSH private key file for Ansible playbook execution | `string` | `"~/.ssh/id_rsa"` | no |
+| <a name="input_ssh_user"></a> [ssh\_user](#input\_ssh\_user) | SSH username for VM access and Ansible connectivity (FR-013) | `string` | `"ubuntu"` | no |
+| <a name="input_storage_profile"></a> [storage\_profile](#input\_storage\_profile) | Storage performance profile for VM disks (FR-006). Maps to module 'storage\_profile' input. | `string` | `"standard"` | no |
+| <a name="input_vm_domain"></a> [vm\_domain](#input\_vm\_domain) | DNS domain for VMs. Maps to module 'ad\_domain' input. | `string` | `"local"` | no |
+| <a name="input_vsphere_folder"></a> [vsphere\_folder](#input\_vsphere\_folder) | vSphere folder path for VM organization (FR-001). Maps to module 'folder\_path' input. | `string` | `"Demo Workloads"` | no |
+| <a name="input_vsphere_site"></a> [vsphere\_site](#input\_vsphere\_site) | vSphere datacenter/site identifier for VM placement (FR-001). Maps to module 'site' input. | `string` | n/a | yes |
+| <a name="input_worker_vm_size"></a> [worker\_vm\_size](#input\_worker\_vm\_size) | VM size tier for worker nodes (must meet minimum 2 CPU, 4GB RAM per FR-005). Maps to module 'size' input. | `string` | `"medium"` | no |
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_all_node_ips"></a> [all\_node\_ips](#output\_all\_node\_ips) | All Kubernetes node IP addresses for monitoring integration |
+| <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | Kubernetes cluster name for kubectl configuration |
+| <a name="output_cni_plugin"></a> [cni\_plugin](#output\_cni\_plugin) | Deployed CNI plugin for pod networking |
+| <a name="output_control_plane_hostname"></a> [control\_plane\_hostname](#output\_control\_plane\_hostname) | Hostname of Kubernetes control plane node |
+| <a name="output_control_plane_ip"></a> [control\_plane\_ip](#output\_control\_plane\_ip) | IP address of Kubernetes control plane node for API access |
+| <a name="output_control_plane_vm_id"></a> [control\_plane\_vm\_id](#output\_control\_plane\_vm\_id) | vSphere VM ID of control plane node |
+| <a name="output_inventory_file_path"></a> [inventory\_file\_path](#output\_inventory\_file\_path) | Path to generated inventory.yml file |
+| <a name="output_kubernetes_api_endpoint"></a> [kubernetes\_api\_endpoint](#output\_kubernetes\_api\_endpoint) | Kubernetes API server endpoint (https://<control\_plane\_ip>:6443) |
+| <a name="output_kubernetes_version"></a> [kubernetes\_version](#output\_kubernetes\_version) | Deployed Kubernetes version |
+| <a name="output_kubespray_inventory"></a> [kubespray\_inventory](#output\_kubespray\_inventory) | Generated Kubespray inventory in YAML format |
+| <a name="output_ssh_connection_strings"></a> [ssh\_connection\_strings](#output\_ssh\_connection\_strings) | SSH connection commands for each node |
+| <a name="output_ssh_user"></a> [ssh\_user](#output\_ssh\_user) | SSH username for VM access |
+| <a name="output_worker_hostnames"></a> [worker\_hostnames](#output\_worker\_hostnames) | Hostnames of Kubernetes worker nodes |
+| <a name="output_worker_ips"></a> [worker\_ips](#output\_worker\_ips) | IP addresses of Kubernetes worker nodes |
+| <a name="output_worker_vm_ids"></a> [worker\_vm\_ids](#output\_worker\_vm\_ids) | vSphere VM IDs of worker nodes |
+<!-- END_TF_DOCS -->
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

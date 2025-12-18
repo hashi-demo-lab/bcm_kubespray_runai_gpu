@@ -1,0 +1,54 @@
+# Example Variable Values for Sandbox Testing
+# Feature: vSphere VM Provisioning with Kubernetes Deployment via Kubespray
+# Spec: /workspace/specs/001-vsphere-k8s-kubespray/spec.md
+#
+# Using private module: tfo-apj-demos/single-virtual-machine/vsphere v1.4.2
+#
+# IMPORTANT: Copy this file to sandbox.auto.tfvars and update with actual values
+# The actual sandbox.auto.tfvars file is excluded from git via .gitignore
+
+# =============================================================================
+# vSphere Infrastructure Configuration (Module Inputs)
+# =============================================================================
+
+vsphere_site   = "sydney"           # Site/datacenter location (e.g., sydney, canberra, melbourne)
+vsphere_folder = "Demo Workloads"   # vSphere folder path for VM placement
+environment    = "dev"              # Environment: dev, staging, or prod
+vm_domain      = "k8s.local"        # DNS domain for VMs (maps to ad_domain)
+
+# =============================================================================
+# VM Configuration (Module Inputs)
+# =============================================================================
+
+control_plane_vm_size = "medium"       # VM size: medium, large, xlarge
+worker_vm_size        = "medium"       # VM size: medium, large, xlarge
+storage_profile       = "standard"     # Storage: standard, performance, premium
+service_tier          = "gold"         # Tier: bronze, silver, gold, platinum
+backup_policy         = "daily"        # Backup: none, daily, weekly
+security_profile      = "web-server"   # Security profile for VMs
+
+# =============================================================================
+# Kubernetes Configuration
+# =============================================================================
+
+cluster_name       = "vsphere-k8s-sandbox"
+kubernetes_version = "v1.28.5"
+cni_plugin         = "calico"
+
+# =============================================================================
+# SSH Configuration
+# =============================================================================
+
+ssh_user = "ubuntu"
+
+# IMPORTANT: ssh_private_key should be set in HCP Terraform workspace variables (sensitive)
+# DO NOT set it here in this file - it will be provided via workspace configuration
+
+ssh_private_key_path = "~/.ssh/id_rsa"
+
+# =============================================================================
+# Kubespray Configuration
+# =============================================================================
+
+kubespray_playbook_path = "./kubespray/cluster.yml"
+kubespray_version       = "v2.24.0"
