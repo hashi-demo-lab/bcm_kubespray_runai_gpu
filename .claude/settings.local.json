@@ -58,7 +58,16 @@
       "Bash(.specify/scripts/bash/validate-env.sh:*)",
       "WebFetch(domain:github.com)",
       "Bash(npx ccstatusline@latest:*)",
-      "Bash(npm run health:*)"
+      "Bash(npm run health:*)",
+      "mcp__terraform__get_provider_capabilities",
+      "mcp__terraform__search_providers",
+      "mcp__terraform__get_provider_details",
+      "Bash(HOST=\"15.197.150.161\")",
+      "Bash(PORT=\"443\")",
+      "Bash(nc:*)",
+      "Bash(openssl s_client:*)",
+      "Bash(openssl x509:*)",
+      "Bash(ping:*)"
     ],
     "deny": [
       "Write(.gitignore)",
@@ -80,5 +89,6 @@
   "enabledMcpjsonServers": [
     "terraform",
     "aws-knowledge-mcp-server"
-  ]
+  ],
+  "disableAllHooks": true
 }

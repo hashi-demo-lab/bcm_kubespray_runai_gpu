@@ -31,3 +31,24 @@ When you discover new information that would be helpful for future development w
 
 When performing any research concurrent subagents can be used for performance and isolation
 use parrallel tool calls and tasks where possible
+- !/bin/bash
+HOST="15.197.150.161"
+PORT="443"
+
+echo "=== Basic connectivity ==="
+nc -zv $HOST $PORT 2>&1
+
+echo -e "\n=== TLS Certificate ==="
+echo | openssl s_client -connect $HOST:$PORT 2>/dev/null | openssl x509 -noout -text | head -20
+
+echo -e "\n=== TLS Handshake Details ==="
+echo | openssl s_client -connect $HOST:$PORT -state 2>&1 | grep -E "(SSL_connect|alert|error)"
+
+echo -e "\n=== Client Cert Request? ==="
+echo | openssl s_client -connect $HOST:$PORT 2>&1 | grep -A5 "Acceptable client"
+
+echo -e "\n=== Supported TLS Versions ==="
+for v in tls1_1 tls1_2 tls1_3; do
+  echo -n "$v: "
+  timeout 5 openssl s_client -connect $HOST:$PORT -$v 2>&1 | grep -q "CONNECTED" && echo "OK" || echo "FAIL"
+done
