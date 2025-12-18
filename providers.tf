@@ -1,17 +1,30 @@
 # Provider Configurations
-# Feature: vSphere VM Provisioning with Kubernetes Deployment via Kubespray
-# Spec: /workspace/specs/001-vsphere-k8s-kubespray/spec.md
+# Feature: BCM-based Kubernetes Deployment via Kubespray
 #
-# Using private module: tfo-apj-demos/single-virtual-machine/vsphere v1.4.2
+# This configuration uses BCM to discover physical nodes and
+# dynamically builds Ansible inventory for Kubespray deployment.
 
-# NOTE: The vsphere provider is managed by the private module.
-# vSphere credentials are configured via HCP Terraform workspace variables:
-# - VSPHERE_USER
-# - VSPHERE_PASSWORD
-# - VSPHERE_SERVER
+# =============================================================================
+# BCM Provider Configuration
+# =============================================================================
+# Set credentials via environment variables or HCP Terraform workspace variables:
+#   BCM_ENDPOINT  - API endpoint URL
+#   BCM_USERNAME  - Username for authentication
+#   BCM_PASSWORD  - Password for authentication (sensitive)
 
-# Ansible provider for Kubespray execution
+provider "bcm" {
+  endpoint             = var.bcm_endpoint
+  username             = var.bcm_username
+  password             = var.bcm_password
+  insecure_skip_verify = var.bcm_insecure_skip_verify
+  timeout              = var.bcm_timeout
+}
+
+# =============================================================================
+# Ansible Provider Configuration
+# =============================================================================
 # SSH connectivity handled via resource-level connection blocks
+
 provider "ansible" {
   # No explicit configuration required
   # SSH authentication configured per-resource using var.ssh_private_key

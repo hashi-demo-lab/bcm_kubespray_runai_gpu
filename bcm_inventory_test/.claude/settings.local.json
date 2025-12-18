@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "aws-knowledge-mcp-server",
+    "terraform"
+  ]
+}

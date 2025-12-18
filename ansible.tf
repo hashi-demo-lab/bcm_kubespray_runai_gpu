@@ -1,24 +1,21 @@
 # Ansible Integration for Kubespray Deployment
-# Feature: vSphere VM Provisioning with Kubernetes Deployment via Kubespray
-# Spec: /workspace/specs/001-vsphere-k8s-kubespray/spec.md
-# User Story 2 (P2): Kubernetes Cluster Deployment (FR-011, FR-013, FR-014)
+# Feature: BCM-based Kubernetes Deployment via Kubespray
 #
-# Using private module: tfo-apj-demos/single-virtual-machine/vsphere v1.4.2
+# This configuration deploys Kubernetes using Kubespray to BCM-discovered nodes.
 
 # =============================================================================
-# Wait for VMs to be SSH Accessible (FR-013)
+# Wait for Nodes to be SSH Accessible
 # =============================================================================
 
-resource "terraform_data" "wait_for_vms" {
-  count = var.enable_ansible ? 3 : 0
+resource "terraform_data" "wait_for_nodes" {
+  count = var.enable_ansible ? length(local.vm_ip_addresses) : 0
 
   triggers_replace = [
-    local.vm_ip_addresses[count.index],
-    tls_private_key.ssh_key.public_key_openssh
+    local.vm_ip_addresses[count.index]
   ]
 
   provisioner "remote-exec" {
-    inline = ["echo 'VM is ready for Ansible provisioning'"]
+    inline = ["echo 'Node is ready for Ansible provisioning'"]
 
     connection {
       type        = "ssh"
@@ -28,52 +25,11 @@ resource "terraform_data" "wait_for_vms" {
       timeout     = "5m"
     }
   }
-
-  depends_on = [
-    module.k8s_control_plane_01,
-    module.k8s_worker_01,
-    module.k8s_worker_02,
-    tls_private_key.ssh_key
-  ]
 }
 
 # =============================================================================
-# Install Ansible on HCP Terraform Agent and Execute Kubespray (FR-011, FR-014)
-# This downloads and installs Ansible on the agent, then runs the playbook
-# against the provisioned VMs.
+# Clone and Setup Kubespray
 # =============================================================================
-
-# resource "terraform_data" "install_ansible_on_agent" {
-#   count = var.enable_kubespray_deployment ? 1 : 0
-
-#   triggers_replace = [
-#     var.ansible_version
-#   ]
-
-# #   # Install Ansible and dependencies on the HCP Terraform agent
-# #   provisioner "local-exec" {
-# #     command = <<-EOT
-# #       set -e
-# #       echo "=== Installing Ansible ${var.ansible_version} on agent ==="
-
-# #       # Create virtual environment for isolation
-# #       python3 -m venv /tmp/ansible-venv || python3 -m virtualenv /tmp/ansible-venv
-
-# #       # Activate and install
-# #       . /tmp/ansible-venv/bin/activate
-# #       pip install --upgrade pip
-# #       pip install ansible==${var.ansible_version}
-
-# #       # Verify installation
-# #       /tmp/ansible-venv/bin/ansible --version
-# #       echo "=== Ansible installation complete ==="
-# #     EOT
-# #   }
-
-# #   depends_on = [
-# #     terraform_data.wait_for_vms
-# #   ]
-# # }
 
 resource "terraform_data" "clone_kubespray" {
   count = var.enable_kubespray_deployment ? 1 : 0
@@ -82,7 +38,7 @@ resource "terraform_data" "clone_kubespray" {
     var.kubespray_version,
     var.kubernetes_version,
     # Force re-run when script logic changes
-    "v9-python39-pip-fix"
+    "v10-bcm-integration"
   ]
 
   # Clone Kubespray repository on the agent
@@ -129,16 +85,18 @@ resource "terraform_data" "clone_kubespray" {
       echo "=== Kubespray clone complete ==="
     EOT
   }
-
 }
+
+# =============================================================================
+# Run Kubespray Deployment
+# =============================================================================
 
 resource "terraform_data" "run_kubespray" {
   count = var.enable_kubespray_deployment ? 1 : 0
 
   triggers_replace = [
-    module.k8s_control_plane_01.ip_address,
-    module.k8s_worker_01.ip_address,
-    module.k8s_worker_02.ip_address,
+    # Trigger on any node IP change
+    join(",", local.vm_ip_addresses),
     var.kubernetes_version,
     var.cni_plugin,
     var.cluster_name
@@ -197,7 +155,7 @@ INVENTORY
 
   depends_on = [
     terraform_data.clone_kubespray,
-    terraform_data.wait_for_vms,
+    terraform_data.wait_for_nodes,
     local_file.kubespray_inventory
   ]
 }

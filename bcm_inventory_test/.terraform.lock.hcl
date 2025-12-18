@@ -5,6 +5,7 @@ provider "registry.terraform.io/hashi-demo-lab/bcm" {
   version     = "0.1.2"
   constraints = "~> 0.1"
   hashes = [
+    "h1:QGnT0J+PRXoxffhyJoD4sMr4LOkeIO+LaSYCNu776FU=",
     "h1:ipboG27iLPkotYq6qGDT6NCrwPj5rL6+IgCWv6V9A1k=",
     "zh:01cd32cf0ff2294d76a09961c769dba3134df465bbf53a1d69416dd562a4f594",
     "zh:3e6bff1c8a7bf1f443e812affdd47422e8b98fa71b778381a47b1408ed79976c",
@@ -28,6 +29,7 @@ provider "registry.terraform.io/hashicorp/local" {
   version     = "2.6.1"
   constraints = "~> 2.5"
   hashes = [
+    "h1:DbiR/D2CPigzCGweYIyJH0N0x04oyI5xiZ9wSW/s3kQ=",
     "h1:LMoX85QLTgCCqRuy2aXoz47P7gZ4WRPSA00fUPC/Rho=",
     "zh:10050d08f416de42a857e4b6f76809aae63ea4ec6f5c852a126a915dede814b4",
     "zh:2df2a3ebe9830d4759c59b51702e209fe053f47453cb4688f43c063bac8746b7",

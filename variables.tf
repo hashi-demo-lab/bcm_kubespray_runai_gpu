@@ -1,33 +1,94 @@
 # Input Variable Declarations
-# Feature: vSphere VM Provisioning with Kubernetes Deployment via Kubespray
-# Spec: /workspace/specs/001-vsphere-k8s-kubespray/spec.md
-# Data Model: /workspace/specs/001-vsphere-k8s-kubespray/data-model.md
+# Feature: BCM-based Kubernetes Deployment via Kubespray
 #
-# Using private module: tfo-apj-demos/single-virtual-machine/vsphere v1.4.2
+# This configuration uses BCM to discover physical nodes and
+# dynamically builds Ansible inventory for Kubespray deployment.
 
 # =============================================================================
-# vSphere Infrastructure Variables (Module Inputs)
+# BCM Provider Configuration Variables
 # =============================================================================
 
-variable "vsphere_site" {
-  description = "vSphere datacenter/site identifier for VM placement (FR-001). Maps to module 'site' input."
+variable "bcm_endpoint" {
+  description = "BCM API endpoint URL"
   type        = string
+  default     = null
+}
+
+variable "bcm_username" {
+  description = "BCM username for authentication"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "bcm_password" {
+  description = "BCM password for authentication"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "bcm_insecure_skip_verify" {
+  description = "Skip TLS certificate verification (only for self-signed certs)"
+  type        = bool
+  default     = true
+}
+
+variable "bcm_timeout" {
+  description = "API timeout in seconds"
+  type        = number
+  default     = 30
+}
+
+# =============================================================================
+# BCM Node Selection Variables
+# =============================================================================
+
+variable "control_plane_nodes" {
+  description = "List of BCM node hostnames to use as Kubernetes control plane nodes"
+  type        = list(string)
+  default     = []
 
   validation {
-    condition     = length(var.vsphere_site) > 0
-    error_message = "vSphere site must be specified."
+    condition     = length(var.control_plane_nodes) > 0 || length(var.worker_nodes) == 0
+    error_message = "At least one control plane node must be specified when worker nodes are defined."
   }
 }
 
-variable "vsphere_folder" {
-  description = "vSphere folder path for VM organization (FR-001). Maps to module 'folder_path' input."
+variable "worker_nodes" {
+  description = "List of BCM node hostnames to use as Kubernetes worker nodes"
+  type        = list(string)
+  default     = []
+}
+
+variable "etcd_nodes" {
+  description = "List of BCM node hostnames to use as etcd nodes. Defaults to control plane nodes if not specified."
+  type        = list(string)
+  default     = []
+}
+
+# =============================================================================
+# vSphere Infrastructure Variables (Module Inputs) - DEPRECATED
+# =============================================================================
+# These variables are retained for backwards compatibility but are not used
+# when deploying to BCM-managed bare metal nodes.
+
+variable "vsphere_site" {
+  description = "DEPRECATED: vSphere datacenter/site identifier. Not used with BCM deployment."
   type        = string
-  default     = "Demo Workloads"
+  default     = ""
+}
+
+variable "vsphere_folder" {
+  description = "DEPRECATED: vSphere folder path. Not used with BCM deployment."
+  type        = string
+  default     = ""
 }
 
 variable "environment" {
-  description = "Deployment environment classification (dev, staging, prod) (FR-002)"
+  description = "Deployment environment classification (dev, staging, prod)"
   type        = string
+  default     = "dev"
 
   validation {
     condition     = contains(["dev", "staging", "prod"], var.environment)

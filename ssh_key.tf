@@ -1,9 +1,7 @@
-# SSH Key Generation for VM Access
-# Feature: vSphere VM Provisioning with Kubernetes Deployment via Kubespray
-# Spec: /workspace/specs/001-vsphere-k8s-kubespray/spec.md
-# User Story 2 (P2): Kubernetes Cluster Deployment (FR-013)
+# SSH Key Generation for Node Access
+# Feature: BCM-based Kubernetes Deployment via Kubespray
 #
-# Generates an SSH key pair for Ansible to connect to VMs
+# Generates an SSH key pair for Ansible to connect to BCM nodes
 
 # =============================================================================
 # Generate SSH Key Pair

@@ -1,78 +1,95 @@
 # Local Computed Values
-# Feature: vSphere VM Provisioning with Kubernetes Deployment via Kubespray
-# Spec: /workspace/specs/001-vsphere-k8s-kubespray/spec.md
-# Data Model: /workspace/specs/001-vsphere-k8s-kubespray/data-model.md
+# Feature: BCM-based Kubernetes Deployment via Kubespray
 #
-# Using private module: tfo-apj-demos/single-virtual-machine/vsphere v1.4.2
+# This configuration builds the Kubespray inventory structure dynamically
+# from BCM-discovered nodes.
 
 locals {
-  # SSH authorized keys for cloud-init injection
-  # This injects the generated SSH public key into VMs via custom_text userdata
-  # Using proper cloud-config format for Ubuntu cloud-init
-  ssh_authorized_keys_userdata = <<-EOT
-#cloud-config
-users:
-  - name: ubuntu
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - ${tls_private_key.ssh_key.public_key_openssh}
-EOT
+  # =============================================================================
+  # Kubespray Inventory Structure
+  # =============================================================================
+  # Builds the inventory structure required by Kubespray for cluster deployment.
+  # Nodes are dynamically assigned to groups based on var.control_plane_nodes,
+  # var.worker_nodes, and var.etcd_nodes configuration.
 
-  # Aggregated list of all VM IP addresses for SSH validation and Ansible inventory (FR-013)
-  vm_ip_addresses = [
-    module.k8s_control_plane_01.ip_address,
-    module.k8s_worker_01.ip_address,
-    module.k8s_worker_02.ip_address
-  ]
-
-  # Kubespray inventory structure for Ansible deployment (FR-016)
   kubespray_inventory = {
     all = {
-      hosts = {
-        "k8s-master-01" = {
-          ansible_host = module.k8s_control_plane_01.ip_address
-          ip           = module.k8s_control_plane_01.ip_address
-          access_ip    = module.k8s_control_plane_01.ip_address
+      # All hosts with their connection details and BCM metadata
+      hosts = merge(
+        # Control plane nodes
+        {
+          for hostname in var.control_plane_nodes :
+          hostname => {
+            ansible_host = local.node_ips[hostname]
+            ip           = local.node_ips[hostname]
+            access_ip    = local.node_ips[hostname]
+            # BCM metadata for reference
+            bcm_uuid = try(local.bcm_nodes[hostname].uuid, null)
+            bcm_mac  = try(local.bcm_nodes[hostname].mac, null)
+            bcm_type = try(local.bcm_nodes[hostname].child_type, null)
+          }
+          if contains(keys(local.bcm_nodes), hostname)
+        },
+        # Worker nodes
+        {
+          for hostname in var.worker_nodes :
+          hostname => {
+            ansible_host = local.node_ips[hostname]
+            ip           = local.node_ips[hostname]
+            access_ip    = local.node_ips[hostname]
+            # BCM metadata for reference
+            bcm_uuid = try(local.bcm_nodes[hostname].uuid, null)
+            bcm_mac  = try(local.bcm_nodes[hostname].mac, null)
+            bcm_type = try(local.bcm_nodes[hostname].child_type, null)
+          }
+          if contains(keys(local.bcm_nodes), hostname)
         }
-        "k8s-worker-01" = {
-          ansible_host = module.k8s_worker_01.ip_address
-          ip           = module.k8s_worker_01.ip_address
-          access_ip    = module.k8s_worker_01.ip_address
-        }
-        "k8s-worker-02" = {
-          ansible_host = module.k8s_worker_02.ip_address
-          ip           = module.k8s_worker_02.ip_address
-          access_ip    = module.k8s_worker_02.ip_address
-        }
-      }
+      )
+
+      # Kubespray group structure
       children = {
+        # Control plane nodes (Kubernetes masters)
         kube_control_plane = {
           hosts = {
-            "k8s-master-01" = {}
+            for hostname in var.control_plane_nodes :
+            hostname => {}
+            if contains(keys(local.bcm_nodes), hostname)
           }
         }
+
+        # Worker nodes
         kube_node = {
           hosts = {
-            "k8s-worker-01" = {}
-            "k8s-worker-02" = {}
+            for hostname in var.worker_nodes :
+            hostname => {}
+            if contains(keys(local.bcm_nodes), hostname)
           }
         }
+
+        # etcd nodes (defaults to control plane if not specified)
         etcd = {
           hosts = {
-            "k8s-master-01" = {}
+            for hostname in local.effective_etcd_nodes :
+            hostname => {}
+            if contains(keys(local.bcm_nodes), hostname)
           }
         }
+
+        # Kubernetes cluster group (combines control plane and workers)
         k8s_cluster = {
           children = {
             kube_control_plane = {}
             kube_node          = {}
           }
         }
+
+        # Calico route reflectors (empty by default)
         calico_rr = {
           hosts = {}
         }
       }
+
+      # Global Ansible variables
       vars = {
         ansible_user                 = var.ssh_user
         ansible_ssh_private_key_file = var.ssh_private_key_path
@@ -81,4 +98,15 @@ EOT
       }
     }
   }
+
+  # =============================================================================
+  # VM IP Addresses (for SSH validation)
+  # =============================================================================
+  # Aggregated list of all node IP addresses for SSH connectivity checks
+
+  vm_ip_addresses = [
+    for hostname in local.all_target_nodes :
+    local.node_ips[hostname]
+    if local.node_ips[hostname] != null
+  ]
 }
