@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Configuration
 TERRAFORM_VERSION="${1:-1.14.3}"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="${HOME}/bin"
 TMP_DIR=$(mktemp -d)
 ARCH=$(uname -m)
 
