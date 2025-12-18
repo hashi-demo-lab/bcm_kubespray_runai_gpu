@@ -80,13 +80,17 @@ unzip -q terraform.zip
 
 # Install binary
 echo "Installing to ${INSTALL_DIR}..."
-if [ -w "${INSTALL_DIR}" ]; then
-    mv terraform "${INSTALL_DIR}/terraform"
-    chmod +x "${INSTALL_DIR}/terraform"
-else
-    echo "Elevated privileges required for ${INSTALL_DIR}"
-    sudo mv terraform "${INSTALL_DIR}/terraform"
-    sudo chmod +x "${INSTALL_DIR}/terraform"
+mkdir -p "${INSTALL_DIR}"
+mv terraform "${INSTALL_DIR}/terraform"
+chmod +x "${INSTALL_DIR}/terraform"
+
+# Check if INSTALL_DIR is in PATH
+if [[ ":${PATH}:" != *":${INSTALL_DIR}:"* ]]; then
+    echo ""
+    echo "NOTE: Add ${INSTALL_DIR} to your PATH:"
+    echo "  export PATH=\"\${HOME}/bin:\${PATH}\""
+    echo ""
+    echo "Add this line to ~/.bashrc or ~/.profile to make it permanent."
 fi
 
 # Verify installation
