@@ -12,3 +12,6 @@ terraform {
     }
   }
 }
+
+
+data "bcm_cmkube_clusters" "all" {}
