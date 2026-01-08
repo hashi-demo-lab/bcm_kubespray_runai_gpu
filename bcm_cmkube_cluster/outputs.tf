@@ -60,24 +60,27 @@
 output "discovered_masters" {
   description = "Discovered master nodes from BCM"
   value = {
-    count     = length(data.bcm_cmdevice_nodes.masters.nodes)
-    hostnames = [for node in data.bcm_cmdevice_nodes.masters.nodes : node.hostname]
+    count     = length(local.master_nodes)
+    hostnames = [for node in local.master_nodes : node.hostname]
+    uuids     = [for node in local.master_nodes : node.uuid]
   }
 }
 
 output "discovered_workers" {
   description = "Discovered worker nodes from BCM"
   value = {
-    count     = length(data.bcm_cmdevice_nodes.workers.nodes)
-    hostnames = [for node in data.bcm_cmdevice_nodes.workers.nodes : node.hostname]
+    count     = length(local.worker_nodes)
+    hostnames = [for node in local.worker_nodes : node.hostname]
+    uuids     = [for node in local.worker_nodes : node.uuid]
   }
 }
 
 output "discovered_etcd" {
   description = "Discovered etcd nodes from BCM"
   value = {
-    count     = length(data.bcm_cmdevice_nodes.etcd.nodes)
-    hostnames = [for node in data.bcm_cmdevice_nodes.etcd.nodes : node.hostname]
+    count     = length(local.etcd_nodes)
+    hostnames = [for node in local.etcd_nodes : node.hostname]
+    uuids     = [for node in local.etcd_nodes : node.uuid]
   }
 }
 
