@@ -1,5 +1,36 @@
 # Cluster Configuration Variables
 # Based on cm-kubernetes-setup.conf settings
+variable "bcm_endpoint" {
+  description = "BCM API endpoint URL"
+  type        = string
+  default     = "https://casper-bright-view-nvidia.axisapps.io"
+}
+
+variable "bcm_username" {
+  description = "BCM username for authentication"
+  type        = string
+  sensitive   = true
+  default     = "ibm"
+}
+
+variable "bcm_password" {
+  description = "BCM password for authentication"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "bcm_insecure_skip_verify" {
+  description = "Skip TLS certificate verification (only for self-signed certs)"
+  type        = bool
+  default     = true
+}
+
+variable "bcm_timeout" {
+  description = "API timeout in seconds"
+  type        = number
+  default     = 30
+}
 
 variable "cluster_name" {
   description = "Kubernetes cluster name (from kc.name in config)"
