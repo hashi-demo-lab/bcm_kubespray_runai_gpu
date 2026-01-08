@@ -28,3 +28,9 @@ external_fqdn        = "bcm-head-01.eth.cluster"
 expected_master_count = 3
 expected_worker_count = 2
 expected_etcd_count   = 3
+
+bcm_endpoint             = "https://localhost:443"
+bcm_username             = "ibm"
+bcm_password             = "$river@suitcase3ok@"
+bcm_insecure_skip_verify = true
+bcm_timeout              = 30
