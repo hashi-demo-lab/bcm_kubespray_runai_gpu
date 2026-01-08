@@ -1,0 +1,30 @@
+# Example Terraform Variables File
+# Copy this file to terraform.tfvars and customize for your environment
+#
+# Based on cm-kubernetes-setup.conf configuration:
+# - Cluster name: terraform
+# - Version: 1.32
+# - Master nodes: cpu-03, cpu-05, cpu-06
+# - Worker nodes: dgx-05, dgx-06
+# - Etcd nodes: cpu-03, cpu-05, cpu-06
+# - Network plugin: calico
+
+# Cluster Configuration
+cluster_name       = "terraform"
+kubernetes_version = "1.32"
+cni_plugin         = "calico"
+
+# Validation and Safety
+force_bypass_validation = false
+prevent_destroy         = true
+
+# Network Configuration
+pod_network_cidr     = "172.29.0.0/16"
+service_network_cidr = "10.150.0.0/16"
+cluster_domain       = "cluster.local"
+external_fqdn        = "bcm-head-01.eth.cluster"
+
+# Expected Node Counts (for validation)
+expected_master_count = 3
+expected_worker_count = 2
+expected_etcd_count   = 3

@@ -87,8 +87,8 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "terraform",
-    "aws-knowledge-mcp-server"
+    "aws-knowledge-mcp-server",
+    "terraform"
   ],
   "disableAllHooks": true
 }
