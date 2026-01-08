@@ -1,60 +1,60 @@
-# Cluster Outputs
-# Provides essential cluster information for integration with other resources
+# # Cluster Outputs
+# # Provides essential cluster information for integration with other resources
 
-output "cluster_id" {
-  description = "Cluster identifier (UUID)"
-  value       = bcm_cmkube_cluster.terraform.id
-}
+# output "cluster_id" {
+#   description = "Cluster identifier (UUID)"
+#   value       = bcm_cmkube_cluster.terraform.id
+# }
 
-output "cluster_uuid" {
-  description = "BCM-assigned cluster UUID"
-  value       = bcm_cmkube_cluster.terraform.uuid
-}
+# output "cluster_uuid" {
+#   description = "BCM-assigned cluster UUID"
+#   value       = bcm_cmkube_cluster.terraform.uuid
+# }
 
-output "cluster_name" {
-  description = "Cluster name"
-  value       = bcm_cmkube_cluster.terraform.name
-}
+# output "cluster_name" {
+#   description = "Cluster name"
+#   value       = bcm_cmkube_cluster.terraform.name
+# }
 
-output "cluster_version" {
-  description = "Kubernetes version"
-  value       = bcm_cmkube_cluster.terraform.version
-}
+# output "cluster_version" {
+#   description = "Kubernetes version"
+#   value       = bcm_cmkube_cluster.terraform.version
+# }
 
-output "cluster_creation_time" {
-  description = "Cluster creation timestamp (Unix epoch)"
-  value       = bcm_cmkube_cluster.terraform.creation_time
-}
+# output "cluster_creation_time" {
+#   description = "Cluster creation timestamp (Unix epoch)"
+#   value       = bcm_cmkube_cluster.terraform.creation_time
+# }
 
-output "cluster_revision_id" {
-  description = "BCM revision ID for optimistic locking"
-  value       = bcm_cmkube_cluster.terraform.revision_id
-}
+# output "cluster_revision_id" {
+#   description = "BCM revision ID for optimistic locking"
+#   value       = bcm_cmkube_cluster.terraform.revision_id
+# }
 
-output "master_node_count" {
-  description = "Number of master nodes in the cluster"
-  value       = length(bcm_cmkube_cluster.terraform.master_nodes)
-}
+# output "master_node_count" {
+#   description = "Number of master nodes in the cluster"
+#   value       = length(bcm_cmkube_cluster.terraform.master_nodes)
+# }
 
-output "worker_node_count" {
-  description = "Number of worker nodes in the cluster"
-  value       = length(bcm_cmkube_cluster.terraform.worker_nodes)
-}
+# output "worker_node_count" {
+#   description = "Number of worker nodes in the cluster"
+#   value       = length(bcm_cmkube_cluster.terraform.worker_nodes)
+# }
 
-output "etcd_node_count" {
-  description = "Number of etcd nodes in the cluster"
-  value       = length(bcm_cmkube_cluster.terraform.etcd_nodes)
-}
+# output "etcd_node_count" {
+#   description = "Number of etcd nodes in the cluster"
+#   value       = length(bcm_cmkube_cluster.terraform.etcd_nodes)
+# }
 
-output "cni_plugin" {
-  description = "CNI plugin used for pod networking"
-  value       = bcm_cmkube_cluster.terraform.cni_plugin
-}
+# output "cni_plugin" {
+#   description = "CNI plugin used for pod networking"
+#   value       = bcm_cmkube_cluster.terraform.cni_plugin
+# }
 
-output "management_network" {
-  description = "Management network UUID"
-  value       = bcm_cmkube_cluster.terraform.management_network
-}
+# output "management_network" {
+#   description = "Management network UUID"
+#   value       = bcm_cmkube_cluster.terraform.management_network
+# }
 
 # Data source outputs for validation
 output "discovered_masters" {
@@ -81,7 +81,7 @@ output "discovered_etcd" {
   }
 }
 
-output "cluster_import_command" {
-  description = "Command to import this cluster into Terraform state"
-  value       = "terraform import bcm_cmkube_cluster.terraform ${bcm_cmkube_cluster.terraform.uuid}"
-}
+# output "cluster_import_command" {
+#   description = "Command to import this cluster into Terraform state"
+#   value       = "terraform import bcm_cmkube_cluster.terraform ${bcm_cmkube_cluster.terraform.uuid}"
+# }
