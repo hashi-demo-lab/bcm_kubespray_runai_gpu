@@ -35,11 +35,13 @@ locals {
   ]
 }
 
-# Query available networks
-data "bcm_cmnet_networks" "all" {}
+# Query dgxnet network
+data "bcm_cmnet_networks" "dgxnet" {
+  name_pattern = "dgxnet"
+}
 
 output "networks" {
-  value = data.bcm_cmnet_networks.all.networks
+  value = data.bcm_cmnet_networks.dgxnet.networks
 }
 
 
@@ -69,8 +71,8 @@ resource "bcm_cmkube_cluster" "terraform" {
   # CNI plugin: calico (from network_plugin setting)
   cni_plugin = var.cni_plugin
 
-  # Management network - use first available network if exists
-  management_network = length(data.bcm_cmnet_networks.all.networks) > 0 ? data.bcm_cmnet_networks.all.networks[0].id : null
+  # Management network - use dgxnet network if exists
+  management_network = length(data.bcm_cmnet_networks.dgxnet.networks) > 0 ? data.bcm_cmnet_networks.dgxnet.networks[0].id : null
 
   # Force flag - set based on variable
   force = var.force_bypass_validation
