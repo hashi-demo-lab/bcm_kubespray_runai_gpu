@@ -33,15 +33,19 @@ locals {
     for node in data.bcm_cmdevice_nodes.all.nodes :
     node if contains(local.etcd_hostnames, node.hostname)
   ]
+
+  # Filter dgxnet network
+  dgxnet = [
+    for network in data.bcm_cmnet_networks.all.networks :
+    network if network.name == "dgxnet"
+  ]
 }
 
-# Query dgxnet network
-data "bcm_cmnet_networks" "dgxnet" {
-  name_pattern = "dgxnet"
-}
+# Query all networks
+data "bcm_cmnet_networks" "all" {}
 
 output "networks" {
-  value = data.bcm_cmnet_networks.dgxnet.networks
+  value = local.dgxnet
 }
 
 
