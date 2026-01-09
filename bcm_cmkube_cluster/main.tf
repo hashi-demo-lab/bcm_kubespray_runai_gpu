@@ -78,36 +78,36 @@ output "master_nodes" {
   }
 }
 
-# # Create the Kubernetes cluster based on cm-kubernetes-setup.conf
-# resource "bcm_cmkube_cluster" "terraform" {
-#   name = var.cluster_name
+# Create the Kubernetes cluster based on cm-kubernetes-setup.conf
+resource "bcm_cmkube_cluster" "terraform" {
+  name = var.cluster_name
 
-#   # Master nodes - require exactly 3 nodes (cpu-03, cpu-05, cpu-06)
-#   master_nodes = length(data.bcm_cmdevice_nodes.masters.nodes) >= 3 ? [
-#     for node in data.bcm_cmdevice_nodes.masters.nodes : node.id
-#   ] : []
+  # Master nodes - require exactly 3 nodes (cpu-03, cpu-05, cpu-06)
+  master_nodes = length(local.master_nodes) >= 3 ? [
+    for node in local.master_nodes : node.id
+  ] : []
 
-#   # Worker nodes - require exactly 2 nodes (dgx-05, dgx-06)
-#   worker_nodes = length(data.bcm_cmdevice_nodes.workers.nodes) >= 2 ? [
-#     for node in data.bcm_cmdevice_nodes.workers.nodes : node.id
-#   ] : []
+  # Worker nodes - require exactly 2 nodes (dgx-05, dgx-06)
+  worker_nodes = length(local.worker_nodes) >= 2 ? [
+    for node in local.worker_nodes : node.id
+  ] : []
 
-#   # Dedicated etcd nodes for HA (recommended for production)
-#   # Using same nodes as masters (cpu-03, cpu-05, cpu-06)
-#   etcd_nodes = length(data.bcm_cmdevice_nodes.etcd.nodes) >= 3 ? [
-#     for node in data.bcm_cmdevice_nodes.etcd.nodes : node.id
-#   ] : []
+  # Dedicated etcd nodes for HA (recommended for production)
+  # Using same nodes as masters (cpu-03, cpu-05, cpu-06)
+  etcd_nodes = length(local.etcd_nodes) >= 3 ? [
+    for node in local.etcd_nodes : node.id
+  ] : []
 
-#   # Kubernetes version from config: 1.32
-#   version = var.kubernetes_version
+  # Kubernetes version from config: 1.32
+  version = var.kubernetes_version
 
-#   # CNI plugin: calico (from network_plugin setting)
-#   cni_plugin = var.cni_plugin
+  # CNI plugin: calico (from network_plugin setting)
+  cni_plugin = var.cni_plugin
 
-#   # Management network - use first available network if exists
-#   management_network = length(data.bcm_cmnet_networks.all.networks) > 0 ? data.bcm_cmnet_networks.all.networks[0].id : null
+  # Management network - use first available network if exists
+  management_network = length(data.bcm_cmnet_networks.all.networks) > 0 ? data.bcm_cmnet_networks.all.networks[0].id : null
 
-#   # Force flag - set based on variable
-#   force = var.force_bypass_validation
+  # Force flag - set based on variable
+  force = var.force_bypass_validation
 
-# }
+}
