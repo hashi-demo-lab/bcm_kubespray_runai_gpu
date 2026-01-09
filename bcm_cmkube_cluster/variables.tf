@@ -46,12 +46,7 @@ variable "cluster_name" {
 variable "kubernetes_version" {
   description = "Kubernetes version (from kc.version in config)"
   type        = string
-  default     = "1.32.0"
-
-  validation {
-    condition     = can(regex("^[0-9]+\\.[0-9]+$", var.kubernetes_version))
-    error_message = "Kubernetes version must be in format 'X.Y' (e.g., '1.32')."
-  }
+  default     = "1.32"
 }
 
 variable "cni_plugin" {
