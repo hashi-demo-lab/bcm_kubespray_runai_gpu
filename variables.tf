@@ -274,3 +274,64 @@ variable "ansible_version" {
   type        = string
   default     = "8.7.0"
 }
+
+# =============================================================================
+# Node User Configuration Variables
+# =============================================================================
+
+variable "node_username" {
+  description = "Username for the account to create on BCM nodes"
+  type        = string
+  default     = "ansible"
+}
+
+variable "node_password" {
+  description = "Password for the user account (hashed or plaintext depending on BCM configuration)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "node_user_uid" {
+  description = "Optional UID for the user account"
+  type        = number
+  default     = null
+}
+
+variable "node_user_gid" {
+  description = "Optional GID for the user's primary group"
+  type        = number
+  default     = null
+}
+
+variable "node_user_home_dir" {
+  description = "Home directory path for the user. Defaults to /home/<username>"
+  type        = string
+  default     = null
+}
+
+variable "node_user_shell" {
+  description = "Login shell for the user account"
+  type        = string
+  default     = "/bin/bash"
+}
+
+variable "node_user_sudo_access" {
+  description = "Grant passwordless sudo access to the user"
+  type        = bool
+  default     = true
+}
+
+variable "node_user_ssh_public_keys" {
+  description = "List of SSH public keys to add to the user's authorized_keys file"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for key in var.node_user_ssh_public_keys :
+      can(regex("^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\\s+[A-Za-z0-9+/=]+", key))
+    ])
+    error_message = "Each SSH public key must be in a valid OpenSSH format (ssh-rsa, ssh-ed25519, or ecdsa-*)."
+  }
+}
