@@ -109,11 +109,13 @@ locals {
   # =============================================================================
   # VM IP Addresses (for SSH validation)
   # =============================================================================
-  # Aggregated list of all node IP addresses for SSH connectivity checks
+  # Use hostnames instead of BCM IPs since hostname resolution (10.184.x.x)
+  # differs from BCM interface IPs (10.229.x.x) and SSH keys are set up
+  # on the hostname-resolved network.
 
   vm_ip_addresses = [
     for hostname in local.all_target_nodes :
-    local.node_ips[hostname]
-    if local.node_ips[hostname] != null
+    hostname # Use hostname instead of IP - SSH resolves via /etc/hosts or DNS
+    if contains(keys(local.bcm_nodes), hostname)
   ]
 }
