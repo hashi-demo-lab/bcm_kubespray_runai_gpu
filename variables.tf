@@ -271,7 +271,7 @@ variable "ansible_version" {
 variable "node_username" {
   description = "Username for the account to create on BCM nodes"
   type        = string
-  default     = "ansible"
+  default     = "ansiblebcm"
 }
 
 variable "node_password" {
