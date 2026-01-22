@@ -6,6 +6,7 @@ provider "registry.terraform.io/ansible/ansible" {
   constraints = "~> 1.3"
   hashes = [
     "h1:Ki8m3lAW3l6f6tPktHiyecEzOydKACJv/vMriuLDWhE=",
+    "h1:X2gqMF6zc+J5VxAkJGwxOO6XXNWpX+8m6MRVETzKr2g=",
     "zh:0307c80c6a890b629e866318688ac6c73acd99dfd61c371e9036feb001baff45",
     "zh:28bddf36dce285d79391b7bbceae08e33533da4412f9c9434eb769a1e75c3992",
     "zh:3979596203cc64fd602a1e03cca198c2071f85ec29bf8c8816b35cc74b271411",
@@ -28,6 +29,7 @@ provider "registry.terraform.io/hashi-demo-lab/bcm" {
   version     = "0.1.2"
   constraints = "~> 0.1"
   hashes = [
+    "h1:QGnT0J+PRXoxffhyJoD4sMr4LOkeIO+LaSYCNu776FU=",
     "h1:ipboG27iLPkotYq6qGDT6NCrwPj5rL6+IgCWv6V9A1k=",
     "zh:01cd32cf0ff2294d76a09961c769dba3134df465bbf53a1d69416dd562a4f594",
     "zh:3e6bff1c8a7bf1f443e812affdd47422e8b98fa71b778381a47b1408ed79976c",
@@ -51,6 +53,7 @@ provider "registry.terraform.io/hashicorp/external" {
   version     = "2.3.5"
   constraints = "~> 2.3"
   hashes = [
+    "h1:FnUk98MI5nOh3VJ16cHf8mchQLewLfN1qZG/MqNgPrI=",
     "h1:smKSos4zs57pJjQrNuvGBpSWth2el9SgePPbPHo0aps=",
     "zh:6e89509d056091266532fa64de8c06950010498adf9070bf6ff85bc485a82562",
     "zh:78d5eefdd9e494defcb3c68d282b8f96630502cac21d1ea161f53cfe9bb483b3",
@@ -71,6 +74,7 @@ provider "registry.terraform.io/hashicorp/local" {
   version     = "2.6.1"
   constraints = "~> 2.5"
   hashes = [
+    "h1:DbiR/D2CPigzCGweYIyJH0N0x04oyI5xiZ9wSW/s3kQ=",
     "h1:LMoX85QLTgCCqRuy2aXoz47P7gZ4WRPSA00fUPC/Rho=",
     "zh:10050d08f416de42a857e4b6f76809aae63ea4ec6f5c852a126a915dede814b4",
     "zh:2df2a3ebe9830d4759c59b51702e209fe053f47453cb4688f43c063bac8746b7",
@@ -92,6 +96,7 @@ provider "registry.terraform.io/hashicorp/tls" {
   constraints = "~> 4.0"
   hashes = [
     "h1:Ka8mEwRFXBabR33iN/WTIEW6RP0z13vFsDlwn11Pf2I=",
+    "h1:zEv9tY1KR5vaLSyp2lkrucNJ+Vq3c+sTFK9GyQGLtFs=",
     "zh:14c35d89307988c835a7f8e26f1b83ce771e5f9b41e407f86a644c0152089ac2",
     "zh:2fb9fe7a8b5afdbd3e903acb6776ef1be3f2e587fb236a8c60f11a9fa165faa8",
     "zh:35808142ef850c0c60dd93dc06b95c747720ed2c40c89031781165f0c2baa2fc",

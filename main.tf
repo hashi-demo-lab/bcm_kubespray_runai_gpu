@@ -33,9 +33,21 @@ locals {
   # Extract primary IP from first interface with an IP address
   node_ips = {
     for hostname, node in local.bcm_nodes :
-    hostname => try(
-      [for iface in node.interfaces : iface.ip if iface.ip != null && iface.ip != ""][0],
-      null
+    hostname => coalesce(
+      try(
+        [
+          for iface in node.interfaces : iface.ip
+          if iface.ip != null && iface.ip != "" && can(regex("^10\\.184\\.162\\.", iface.ip))
+        ][0],
+        null
+      ),
+      try(
+        [
+          for iface in node.interfaces : iface.ip
+          if iface.ip != null && iface.ip != "" && iface.ip != "0.0.0.0"
+        ][0],
+        null
+      )
     )
   }
 
