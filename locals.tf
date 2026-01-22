@@ -19,19 +19,24 @@ locals {
   # Nodes are dynamically assigned to groups based on var.control_plane_nodes,
   # var.worker_nodes, and var.etcd_nodes configuration.
 
+  # Production network IPs - use variable mapping or fall back to hostname
+  production_ips = {
+    for hostname in local.all_target_nodes :
+    hostname => lookup(var.node_production_ips, hostname, hostname)
+  }
+
   kubespray_inventory = {
     all = {
       # All hosts with their connection details and BCM metadata
-      # NOTE: Using hostnames for ansible_host - they resolve to 10.184.162.x (production network)
-      # BCM interface IPs (10.229.10.x) are for out-of-band management only
+      # NOTE: Using production network IPs (10.184.162.x) NOT BCM out-of-band IPs (10.229.10.x)
       hosts = merge(
         # Control plane nodes
         {
           for hostname in var.control_plane_nodes :
           hostname => {
-            ansible_host = hostname # Use hostname - resolves via DNS to 10.184.162.x
-            ip           = hostname # Kubespray will resolve
-            access_ip    = hostname # Kubespray will resolve
+            ansible_host = local.production_ips[hostname]
+            ip           = local.production_ips[hostname]
+            access_ip    = local.production_ips[hostname]
             # BCM metadata for reference
             bcm_uuid = try(local.bcm_nodes[hostname].uuid, null)
             bcm_mac  = try(local.bcm_nodes[hostname].mac, null)
@@ -43,9 +48,9 @@ locals {
         {
           for hostname in var.worker_nodes :
           hostname => {
-            ansible_host = hostname # Use hostname - resolves via DNS to 10.184.162.x
-            ip           = hostname # Kubespray will resolve
-            access_ip    = hostname # Kubespray will resolve
+            ansible_host = local.production_ips[hostname]
+            ip           = local.production_ips[hostname]
+            access_ip    = local.production_ips[hostname]
             # BCM metadata for reference
             bcm_uuid = try(local.bcm_nodes[hostname].uuid, null)
             bcm_mac  = try(local.bcm_nodes[hostname].mac, null)

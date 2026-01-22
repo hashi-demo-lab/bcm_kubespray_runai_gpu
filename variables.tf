@@ -67,6 +67,18 @@ variable "etcd_nodes" {
   default     = []
 }
 
+variable "node_production_ips" {
+  description = "Map of node hostnames to production network IPs (10.184.162.x). BCM returns out-of-band management IPs (10.229.10.x) which should not be used for deployment."
+  type        = map(string)
+  default = {
+    "cpu-03" = "10.184.162.102"
+    "cpu-05" = "10.184.162.104"
+    "cpu-06" = "10.184.162.105"
+    "dgx-05" = "10.184.162.110"
+    "dgx-06" = "10.184.162.111"
+  }
+}
+
 # =============================================================================
 # BCM Infrastructure Variables (Module Inputs)
 # =============================================================================
