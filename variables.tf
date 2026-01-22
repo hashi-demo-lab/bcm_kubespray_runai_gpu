@@ -293,6 +293,12 @@ variable "node_password" {
   default     = null
 }
 
+variable "node_user_full_name" {
+  description = "Full name for the user account"
+  type        = string
+  default     = "Ansible Service Account"
+}
+
 variable "node_user_uid" {
   description = "Optional UID for the user account"
   type        = number
@@ -315,12 +321,6 @@ variable "node_user_shell" {
   description = "Login shell for the user account"
   type        = string
   default     = "/bin/bash"
-}
-
-variable "node_user_sudo_access" {
-  description = "Grant passwordless sudo access to the user"
-  type        = bool
-  default     = true
 }
 
 variable "node_user_ssh_public_keys" {
