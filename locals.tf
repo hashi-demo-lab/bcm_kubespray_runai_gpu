@@ -109,6 +109,7 @@ locals {
         ansible_ssh_private_key_file = local.ssh_private_key_path
         ansible_become               = true
         ansible_become_method        = "sudo"
+        ansible_become_pass          = var.node_password
       }
     }
   }

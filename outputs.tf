@@ -120,7 +120,7 @@ output "kubernetes_api_endpoint" {
 output "kubespray_inventory" {
   description = "Generated Kubespray inventory in YAML format"
   value       = yamlencode(local.kubespray_inventory)
-  sensitive   = false
+  sensitive   = true
 }
 
 output "inventory_file_path" {
