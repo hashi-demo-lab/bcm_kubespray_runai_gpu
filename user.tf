@@ -21,7 +21,7 @@ locals {
 # BCM User Resource with SSH Keys
 # =============================================================================
 
-resource "bcm_cmdevice_user" "node_user" {
+resource "bcm_cmuser_user" "node_user" {
   for_each = local.bcm_nodes
 
   # Target node identification
@@ -57,7 +57,7 @@ resource "bcm_cmdevice_user" "node_user" {
 output "created_users" {
   description = "Users created on BCM nodes with SSH key configuration"
   value = {
-    for hostname, user in bcm_cmdevice_user.node_user :
+    for hostname, user in bcm_cmuser_user.node_user :
     hostname => {
       username       = user.username
       home_dir       = user.home_dir
