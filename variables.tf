@@ -253,9 +253,24 @@ variable "kubespray_playbook_path" {
 }
 
 variable "kubespray_version" {
-  description = "Kubespray release version or Git tag (FR-011). v2.24.0 supports K8s 1.28.x and requires Python 3.9+"
+  description = <<-EOT
+    Kubespray release version or Git tag (FR-011).
+    
+    Version compatibility matrix:
+    - v2.24.0: K8s 1.27.x-1.28.x, Python 3.9+
+    - v2.25.0: K8s 1.28.x-1.29.x, Python 3.10+
+    - v2.26.0: K8s 1.29.x-1.30.x, Python 3.10+
+    - v2.27.0+: K8s 1.30.x-1.32.x, Python 3.11+
+    
+    Update kubernetes_version accordingly when changing this.
+  EOT
   type        = string
   default     = "v2.24.0"
+
+  validation {
+    condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+$", var.kubespray_version))
+    error_message = "Kubespray version must be in format vX.Y.Z (e.g., v2.24.0)."
+  }
 }
 
 # =============================================================================
