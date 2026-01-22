@@ -3,19 +3,52 @@
 # Spec: /workspace/specs/002-runai-deployment/plan.md
 
 # =============================================================================
-# Terraform Cloud Configuration
+# Kubernetes Cluster Connection Configuration
 # =============================================================================
 
-variable "tfc_organization" {
-  description = "Terraform Cloud organization name"
+variable "kubernetes_host" {
+  description = "Kubernetes API server endpoint URL"
   type        = string
-  default     = "tfo-apj-demos"
 }
 
-variable "infrastructure_workspace" {
-  description = "Infrastructure workspace name (Config 1) for remote state"
+variable "kubernetes_ca_certificate" {
+  description = "Base64-encoded Kubernetes cluster CA certificate"
   type        = string
-  default     = "sandbox_vm-k8s-kubespray-runai"
+  sensitive   = true
+}
+
+variable "kubernetes_client_certificate" {
+  description = "Base64-encoded Kubernetes client certificate"
+  type        = string
+  sensitive   = true
+}
+
+variable "kubernetes_client_key" {
+  description = "Base64-encoded Kubernetes client private key"
+  type        = string
+  sensitive   = true
+}
+
+# =============================================================================
+# Cluster Metadata
+# =============================================================================
+
+variable "cluster_name" {
+  description = "Kubernetes cluster name"
+  type        = string
+  default     = "bcm-k8s-cluster"
+}
+
+variable "control_plane_ip" {
+  description = "IP address of the Kubernetes control plane"
+  type        = string
+  default     = null
+}
+
+variable "worker_ips" {
+  description = "List of worker node IP addresses"
+  type        = list(string)
+  default     = []
 }
 
 # =============================================================================

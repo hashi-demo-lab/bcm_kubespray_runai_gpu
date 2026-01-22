@@ -20,10 +20,5 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0.0"
     }
-
-    tfe = {
-      source  = "hashicorp/tfe"
-      version = "~> 0.60.0"
-    }
   }
 }
