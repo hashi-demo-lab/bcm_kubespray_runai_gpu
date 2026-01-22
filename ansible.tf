@@ -11,8 +11,13 @@ resource "terraform_data" "wait_for_nodes" {
   count = var.enable_ansible ? length(local.vm_ip_addresses) : 0
 
   triggers_replace = [
-    local.vm_ip_addresses[count.index]
+    local.vm_ip_addresses[count.index],
+    # Re-trigger if user is recreated (SSH key changes)
+    bcm_cmuser_user.node_user.id
   ]
+
+  # Ensure BCM user with SSH key is created before attempting SSH connection
+  depends_on = [bcm_cmuser_user.node_user]
 
   provisioner "remote-exec" {
     inline = ["echo 'Node is ready for Ansible provisioning'"]
