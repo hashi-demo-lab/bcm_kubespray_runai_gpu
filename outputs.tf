@@ -4,19 +4,40 @@
 # This configuration outputs cluster information for BCM-discovered nodes.
 
 # =============================================================================
+# Diagnostic Outputs (for troubleshooting empty results)
+# =============================================================================
+
+output "debug_bcm_hostnames" {
+  description = "All hostnames discovered from BCM (for matching verification)"
+  value       = [for node in data.bcm_cmdevice_nodes.all.nodes : node.hostname]
+}
+
+output "debug_requested_nodes" {
+  description = "Nodes requested in variables vs what was matched in BCM"
+  value = {
+    control_plane_requested = var.control_plane_nodes
+    control_plane_matched   = [for h in var.control_plane_nodes : h if contains(keys(local.bcm_nodes), h)]
+    control_plane_missing   = [for h in var.control_plane_nodes : h if !contains(keys(local.bcm_nodes), h)]
+    workers_requested       = var.worker_nodes
+    workers_matched         = [for h in var.worker_nodes : h if contains(keys(local.bcm_nodes), h)]
+    workers_missing         = [for h in var.worker_nodes : h if !contains(keys(local.bcm_nodes), h)]
+  }
+}
+
+# =============================================================================
 # Control Plane Node Outputs
 # =============================================================================
 
 output "control_plane_nodes" {
-  description = "Control plane node details"
+  description = "Control plane node details (only shows nodes found in BCM)"
   value = {
     for hostname in var.control_plane_nodes :
     hostname => {
-      ip       = local.node_ips[hostname]
+      ip       = try(local.node_ips[hostname], null)
       bcm_uuid = try(local.bcm_nodes[hostname].uuid, null)
       bcm_type = try(local.bcm_nodes[hostname].child_type, null)
+      found    = contains(keys(local.bcm_nodes), hostname)
     }
-    if contains(keys(local.bcm_nodes), hostname)
   }
 }
 
@@ -34,15 +55,15 @@ output "control_plane_ips" {
 # =============================================================================
 
 output "worker_nodes" {
-  description = "Worker node details"
+  description = "Worker node details (only shows nodes found in BCM)"
   value = {
     for hostname in var.worker_nodes :
     hostname => {
-      ip       = local.node_ips[hostname]
+      ip       = try(local.node_ips[hostname], null)
       bcm_uuid = try(local.bcm_nodes[hostname].uuid, null)
       bcm_type = try(local.bcm_nodes[hostname].child_type, null)
+      found    = contains(keys(local.bcm_nodes), hostname)
     }
-    if contains(keys(local.bcm_nodes), hostname)
   }
 }
 
