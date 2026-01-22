@@ -215,15 +215,16 @@ variable "ssh_user" {
 }
 
 variable "ssh_private_key" {
-  description = "SSH private key content for VM authentication (per SEC-002, stored in HCP Terraform) (FR-013)"
+  description = "SSH private key content for VM authentication. If not provided, uses the auto-generated key from tls_private_key.ssh_key"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "ssh_private_key_path" {
-  description = "Path to SSH private key file for Ansible playbook execution"
+  description = "Path to SSH private key file for Ansible playbook execution. If not provided, uses the auto-generated key file."
   type        = string
-  default     = "~/.ssh/id_rsa"
+  default     = null
 }
 
 # =============================================================================

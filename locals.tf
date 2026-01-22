@@ -6,6 +6,13 @@
 
 locals {
   # =============================================================================
+  # SSH Key Configuration
+  # =============================================================================
+  # Use generated key if user doesn't provide their own
+  ssh_private_key_content = var.ssh_private_key != null ? var.ssh_private_key : tls_private_key.ssh_key.private_key_pem
+  ssh_private_key_path    = var.ssh_private_key_path != null ? var.ssh_private_key_path : local_sensitive_file.ssh_private_key.filename
+
+  # =============================================================================
   # Kubespray Inventory Structure
   # =============================================================================
   # Builds the inventory structure required by Kubespray for cluster deployment.
@@ -92,7 +99,7 @@ locals {
       # Global Ansible variables
       vars = {
         ansible_user                 = var.ssh_user
-        ansible_ssh_private_key_file = var.ssh_private_key_path
+        ansible_ssh_private_key_file = local.ssh_private_key_path
         ansible_become               = true
         ansible_become_method        = "sudo"
       }
