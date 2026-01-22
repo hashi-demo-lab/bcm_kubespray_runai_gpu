@@ -47,7 +47,7 @@ variable "bcm_timeout" {
 variable "control_plane_nodes" {
   description = "List of BCM node hostnames to use as Kubernetes control plane nodes"
   type        = list(string)
-  default     = ["cpu-01"]
+  default     = ["cpu-03", "cpu-05", "cpu-06"]
 
   validation {
     condition     = length(var.control_plane_nodes) > 0 || length(var.worker_nodes) == 0
@@ -58,7 +58,7 @@ variable "control_plane_nodes" {
 variable "worker_nodes" {
   description = "List of BCM node hostnames to use as Kubernetes worker nodes"
   type        = list(string)
-  default     = ["dgx-01", "dgx-02", "dgx-03", "dgx-04", "dgx-05", "dgx-06"]
+  default     = ["dgx-05", "dgx-06"]
 }
 
 variable "etcd_nodes" {
