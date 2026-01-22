@@ -337,15 +337,15 @@ variable "node_user_full_name" {
 }
 
 variable "node_user_uid" {
-  description = "Optional UID for the user account"
+  description = "UID for the user account (should match LDAP UID)"
   type        = number
-  default     = null
+  default     = 60000
 }
 
 variable "node_user_gid" {
-  description = "Optional GID for the user's primary group"
+  description = "GID for the user's primary group (should match LDAP GID)"
   type        = number
-  default     = null
+  default     = 60000
 }
 
 variable "node_user_home_dir" {
