@@ -38,7 +38,7 @@ resource "terraform_data" "clone_kubespray" {
     var.kubespray_version,
     var.kubernetes_version,
     # Force re-run when script logic changes
-    "v10-bcm-integration"
+    "v11-use-builtin-venv"
   ]
 
   # Clone Kubespray repository on the agent
@@ -50,16 +50,19 @@ resource "terraform_data" "clone_kubespray" {
       # Verify Python 3.9 is available
       python3.9 --version || { echo "ERROR: Python 3.9 not found"; exit 1; }
 
-      # Install virtualenv using python3.9 -m pip (pip3.9 may not be in PATH)
-      python3.9 -m pip install --user virtualenv
-
-      # Create isolated virtualenv with Python 3.9 to meet Kubespray requirements
+      # Use built-in venv module instead of virtualenv (avoids extra install and memory usage)
+      echo "Removing old virtualenv if exists..."
       rm -rf /tmp/kubespray-venv
-      python3.9 -m virtualenv /tmp/kubespray-venv
+      
+      echo "Creating virtualenv with python3.9 -m venv..."
+      python3.9 -m venv /tmp/kubespray-venv
+      
+      echo "Activating virtualenv..."
       . /tmp/kubespray-venv/bin/activate
 
-      # Upgrade pip in virtualenv
-      pip install --upgrade pip
+      # Upgrade pip with constraints to reduce memory
+      echo "Upgrading pip..."
+      pip install --upgrade pip --no-cache-dir
 
       echo "=== Cloning Kubespray ${var.kubespray_version} ==="
 
@@ -70,9 +73,9 @@ resource "terraform_data" "clone_kubespray" {
       PYTHON_VERSION=$(python3.9 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
       echo "Python version: $PYTHON_VERSION"
 
-      # Install Kubespray requirements into virtualenv
+      # Install Kubespray requirements into virtualenv (no cache to save memory)
       echo "Installing Kubespray requirements..."
-      pip install -r /tmp/kubespray/requirements.txt
+      pip install --no-cache-dir -r /tmp/kubespray/requirements.txt
 
       # Verify ansible version in virtualenv
       echo "=== Ansible version in virtualenv ==="

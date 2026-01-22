@@ -1,0 +1,72 @@
+# =============================================================================
+# Kubespray Deployment Configuration
+# =============================================================================
+# Copy this file to kubespray.conf and customize for your environment
+#
+# Usage:
+#   cp kubespray.conf.example kubespray.conf
+#   # Edit kubespray.conf with your values
+#   ./deploy-kubespray.sh
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Kubespray and Kubernetes Versions
+# -----------------------------------------------------------------------------
+KUBESPRAY_VERSION="v2.24.0"
+KUBERNETES_VERSION="v1.28.6"
+
+# -----------------------------------------------------------------------------
+# Cluster Configuration
+# -----------------------------------------------------------------------------
+CLUSTER_NAME="dgx-k8s-cluster"
+CNI_PLUGIN="calico"  # Options: calico, flannel, cilium
+
+# -----------------------------------------------------------------------------
+# SSH Configuration
+# -----------------------------------------------------------------------------
+SSH_USER="ubuntu"
+SSH_KEY_PATH="/tmp/kubespray_ssh_key"
+
+# Uncomment to use SSH key content directly (useful for CI/CD)
+# SSH_PRIVATE_KEY='-----BEGIN OPENSSH PRIVATE KEY-----
+# ...key content...
+# -----END OPENSSH PRIVATE KEY-----'
+
+# -----------------------------------------------------------------------------
+# Node Configuration
+# -----------------------------------------------------------------------------
+# Space-separated list of hostnames
+
+# Control plane nodes (at least 1 required, 3 recommended for HA)
+CONTROL_PLANE_NODES="master1 master2 master3"
+
+# Worker nodes (optional, can be empty for single-node clusters)
+WORKER_NODES="worker1 worker2 worker3 worker4"
+
+# Etcd nodes (optional, defaults to control plane nodes if empty)
+ETCD_NODES=""
+
+# -----------------------------------------------------------------------------
+# Node IP Mapping
+# -----------------------------------------------------------------------------
+# Space-separated hostname:ip pairs
+# Must include all nodes from CONTROL_PLANE_NODES and WORKER_NODES
+
+NODE_IP_MAP="master1:10.0.1.10 master2:10.0.1.11 master3:10.0.1.12 worker1:10.0.2.10 worker2:10.0.2.11 worker3:10.0.2.12 worker4:10.0.2.13"
+
+# -----------------------------------------------------------------------------
+# Working Directories
+# -----------------------------------------------------------------------------
+KUBESPRAY_DIR="/tmp/kubespray"
+VENV_DIR="/tmp/kubespray-venv"
+
+# =============================================================================
+# Example: DGX BasePOD Configuration
+# =============================================================================
+# Uncomment and modify for a typical DGX BasePOD deployment:
+#
+# CONTROL_PLANE_NODES="dgx-mgmt1"
+# WORKER_NODES="dgx01 dgx02 dgx03 dgx04"
+# NODE_IP_MAP="dgx-mgmt1:10.10.1.10 dgx01:10.10.2.1 dgx02:10.10.2.2 dgx03:10.10.2.3 dgx04:10.10.2.4"
+# SSH_USER="ansible"
+# SSH_KEY_PATH="~/.ssh/dgx_ansible_key"
