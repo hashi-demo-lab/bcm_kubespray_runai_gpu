@@ -68,22 +68,10 @@ variable "etcd_nodes" {
 }
 
 # =============================================================================
-# vSphere Infrastructure Variables (Module Inputs) - DEPRECATED
+# BCM Infrastructure Variables (Module Inputs)
 # =============================================================================
-# These variables are retained for backwards compatibility but are not used
-# when deploying to BCM-managed bare metal nodes.
-
-variable "vsphere_site" {
-  description = "DEPRECATED: vSphere datacenter/site identifier. Not used with BCM deployment."
-  type        = string
-  default     = ""
-}
-
-variable "vsphere_folder" {
-  description = "DEPRECATED: vSphere folder path. Not used with BCM deployment."
-  type        = string
-  default     = ""
-}
+# These variables support BCM-managed bare metal node deployments.
+# Legacy vSphere variables have been removed.
 
 variable "environment" {
   description = "Deployment environment classification (dev, staging, prod)"
@@ -174,7 +162,7 @@ variable "vm_domain" {
 variable "cluster_name" {
   description = "Kubernetes cluster name identifier (FR-007)"
   type        = string
-  default     = "vsphere-k8s-cluster"
+  default     = "bcm-k8s-cluster"
 
   validation {
     condition     = length(var.cluster_name) > 0 && length(var.cluster_name) <= 63

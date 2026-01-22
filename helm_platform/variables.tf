@@ -70,7 +70,7 @@ variable "runai_version" {
 variable "runai_cluster_name" {
   description = "Run:AI cluster name for registration in console"
   type        = string
-  default     = "vsphere-k8s-cluster"
+  default     = "bcm-k8s-cluster"
 }
 
 variable "runai_cluster_url" {
