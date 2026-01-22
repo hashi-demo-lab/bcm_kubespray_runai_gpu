@@ -34,7 +34,8 @@ resource "bcm_cmuser_user" "node_user" {
   gid = var.node_user_gid
 
   # SSH public keys for passwordless authentication
-  # Includes the generated key plus any additional user-supplied keys
+  # NOTE: BCM stores keys but doesn't deploy them to nodes - manual deployment required
+  # The provider has a bug where it returns null on read, so we ignore changes
   authorized_ssh_keys = local.all_ssh_public_keys_string
 
   # Ensure SSH key is generated before user creation
@@ -42,6 +43,7 @@ resource "bcm_cmuser_user" "node_user" {
 
   lifecycle {
     create_before_destroy = true
+    ignore_changes        = [authorized_ssh_keys]
   }
 }
 
