@@ -162,6 +162,19 @@ INVENTORY
 
       cd /tmp/kubespray
 
+      # Write registry mirrors config for Kubespray
+      cat > /tmp/kubespray_registry_config.yml << 'REGCONFIG'
+containerd_registries_mirrors:
+  - prefix: docker.io
+    mirrors:
+      - host: https://mirror.gcr.io
+        capabilities: ["pull", "resolve"]
+        skip_verify: false
+      - host: https://registry-1.docker.io
+        capabilities: ["pull", "resolve"]
+        skip_verify: false
+REGCONFIG
+
       /tmp/kubespray-venv/bin/ansible-playbook -i inventory/mycluster/hosts.yml cluster.yml \
         -b -v \
         --private-key=/tmp/kubespray_ssh_key \
@@ -171,12 +184,14 @@ INVENTORY
         -e "kube_service_addresses=${var.service_network_cidr}" \
         -e "cluster_name=${var.cluster_name}" \
         -e "ansible_user=${var.ssh_user}" \
-        -e "ansible_ssh_private_key_file=/tmp/kubespray_ssh_key"
+        -e "ansible_ssh_private_key_file=/tmp/kubespray_ssh_key" \
+        -e "@/tmp/kubespray_registry_config.yml"
 
       echo "=== Kubespray deployment completed ==="
 
       # Cleanup sensitive files
       rm -f /tmp/kubespray_ssh_key
+      rm -f /tmp/kubespray_registry_config.yml
     EOT
   }
 

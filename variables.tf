@@ -227,6 +227,32 @@ variable "service_network_cidr" {
 }
 
 # =============================================================================
+# Container Registry Configuration
+# =============================================================================
+
+variable "containerd_registry_mirrors" {
+  description = "Map of container registries to their mirror endpoints. Used to avoid Docker Hub rate limits."
+  type        = map(list(string))
+  default = {
+    "docker.io" = ["https://mirror.gcr.io", "https://registry-1.docker.io"]
+  }
+}
+
+variable "docker_hub_username" {
+  description = "Docker Hub username for authenticated pulls (optional, increases rate limit)"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "docker_hub_password" {
+  description = "Docker Hub password or access token for authenticated pulls (optional)"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+# =============================================================================
 # SSH Configuration Variables
 # =============================================================================
 
