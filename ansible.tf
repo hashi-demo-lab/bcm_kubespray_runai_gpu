@@ -19,16 +19,33 @@ resource "terraform_data" "wait_for_nodes" {
   # Ensure BCM user with SSH key is created before attempting SSH connection
   depends_on = [bcm_cmuser_user.node_user]
 
-  provisioner "remote-exec" {
-    inline = ["echo 'Node is ready for Ansible provisioning'"]
-
-    connection {
-      type        = "ssh"
-      user        = var.ssh_user
-      private_key = tls_private_key.ssh_key.private_key_pem
-      host        = local.vm_ip_addresses[count.index]
-      timeout     = "5m"
-    }
+  # Use local-exec with SSH options to support legacy host key algorithms (ssh-rsa, ssh-dss)
+  # Required for older BCM nodes that don't support newer key exchange algorithms
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      echo "Waiting for SSH on ${local.vm_ip_addresses[count.index]}..."
+      
+      # Retry loop for SSH connectivity (max 60 attempts, 5 seconds apart = 5 min timeout)
+      for i in $(seq 1 60); do
+        if ssh -o StrictHostKeyChecking=no \
+               -o UserKnownHostsFile=/dev/null \
+               -o HostKeyAlgorithms=+ssh-rsa,ssh-dss \
+               -o PubkeyAcceptedAlgorithms=+ssh-rsa \
+               -o ConnectTimeout=10 \
+               -i ${local_sensitive_file.ssh_private_key.filename} \
+               ${var.ssh_user}@${local.vm_ip_addresses[count.index]} \
+               'echo "Node is ready for Ansible provisioning"' 2>/dev/null; then
+          echo "SSH connection successful to ${local.vm_ip_addresses[count.index]}"
+          exit 0
+        fi
+        echo "Attempt $i/60: SSH not ready, waiting 5 seconds..."
+        sleep 5
+      done
+      
+      echo "ERROR: SSH connection failed after 5 minutes to ${local.vm_ip_addresses[count.index]}"
+      exit 1
+    EOT
   }
 }
 
@@ -133,9 +150,9 @@ INVENTORY
       echo "=== Inventory file ==="
       cat /tmp/kubespray/inventory/mycluster/hosts.yml
 
-      # Configure SSH options
+      # Configure SSH options with legacy algorithm support for older BCM nodes
       export ANSIBLE_HOST_KEY_CHECKING=False
-      export ANSIBLE_SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      export ANSIBLE_SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-rsa,ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-rsa"
 
       echo "=== Starting Kubespray cluster deployment ==="
 
