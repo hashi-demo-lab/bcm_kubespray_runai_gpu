@@ -235,67 +235,67 @@ The following ports must be accessible between cluster nodes:
 
 ## Providers
 
-| Name | Version |
-|------|---------|
-| <a name="provider_bcm"></a> [bcm](#provider\_bcm) | ~> 0.1 |
-| <a name="provider_external"></a> [external](#provider\_external) | ~> 2.3 |
-| <a name="provider_local"></a> [local](#provider\_local) | ~> 2.5 |
-| <a name="provider_tls"></a> [tls](#provider\_tls) | ~> 4.0 |
+| Name                                                            | Version |
+| --------------------------------------------------------------- | ------- |
+| <a name="provider_bcm"></a> [bcm](#provider_bcm)                | ~> 0.1  |
+| <a name="provider_external"></a> [external](#provider_external) | ~> 2.3  |
+| <a name="provider_local"></a> [local](#provider_local)          | ~> 2.5  |
+| <a name="provider_tls"></a> [tls](#provider_tls)                | ~> 4.0  |
 
 ## Resources
 
-| Name | Type |
-|------|------|
-| [bcm_cmuser_user.node_user](https://registry.terraform.io/providers/hashi-demo-lab/bcm/latest/docs/resources/cmuser_user) | resource |
-| [local_file.kubespray_inventory](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/file) | resource |
-| [local_sensitive_file.ssh_private_key](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/sensitive_file) | resource |
-| [tls_private_key.ssh_key](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
-| [bcm_cmdevice_nodes.all](https://registry.terraform.io/providers/hashi-demo-lab/bcm/latest/docs/data-sources/cmdevice_nodes) | data source |
-| [external.fetch_kubeconfig](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
+| Name                                                                                                                                 | Type        |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| [bcm_cmuser_user.node_user](https://registry.terraform.io/providers/hashi-demo-lab/bcm/latest/docs/resources/cmuser_user)            | resource    |
+| [local_file.kubespray_inventory](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/file)                 | resource    |
+| [local_sensitive_file.ssh_private_key](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/sensitive_file) | resource    |
+| [tls_private_key.ssh_key](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key)                   | resource    |
+| [bcm_cmdevice_nodes.all](https://registry.terraform.io/providers/hashi-demo-lab/bcm/latest/docs/data-sources/cmdevice_nodes)         | data source |
+| [external.fetch_kubeconfig](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external)            | data source |
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_bcm_endpoint"></a> [bcm\_endpoint](#input\_bcm\_endpoint) | BCM API endpoint URL | `string` | `null` | no |
-| <a name="input_bcm_username"></a> [bcm\_username](#input\_bcm\_username) | BCM username for authentication | `string` | `null` | no |
-| <a name="input_bcm_password"></a> [bcm\_password](#input\_bcm\_password) | BCM password for authentication | `string` | `null` | no |
-| <a name="input_bcm_insecure_skip_verify"></a> [bcm\_insecure\_skip\_verify](#input\_bcm\_insecure\_skip\_verify) | Skip TLS certificate verification | `bool` | `true` | no |
-| <a name="input_control_plane_nodes"></a> [control\_plane\_nodes](#input\_control\_plane\_nodes) | List of BCM node hostnames for control plane | `list(string)` | `[]` | no |
-| <a name="input_worker_nodes"></a> [worker\_nodes](#input\_worker\_nodes) | List of BCM node hostnames for workers | `list(string)` | `[]` | no |
-| <a name="input_etcd_nodes"></a> [etcd\_nodes](#input\_etcd\_nodes) | List of BCM node hostnames for etcd (defaults to control plane) | `list(string)` | `[]` | no |
-| <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Kubernetes cluster name identifier | `string` | `"vsphere-k8s-cluster"` | no |
-| <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Target Kubernetes version | `string` | `"v1.28.6"` | no |
-| <a name="input_cni_plugin"></a> [cni\_plugin](#input\_cni\_plugin) | CNI plugin for pod networking | `string` | `"calico"` | no |
-| <a name="input_ssh_user"></a> [ssh\_user](#input\_ssh\_user) | SSH username for node access | `string` | `"ubuntu"` | no |
-| <a name="input_ssh_private_key"></a> [ssh\_private\_key](#input\_ssh\_private\_key) | SSH private key (uses auto-generated if null) | `string` | `null` | no |
-| <a name="input_ssh_private_key_path"></a> [ssh\_private\_key\_path](#input\_ssh\_private\_key\_path) | Path to SSH private key file (uses auto-generated if null) | `string` | `null` | no |
-| <a name="input_node_username"></a> [node\_username](#input\_node\_username) | Username for BCM node account | `string` | `"ansible"` | no |
-| <a name="input_node_password"></a> [node\_password](#input\_node\_password) | Password for the user account | `string` | `null` | no |
-| <a name="input_node_user_full_name"></a> [node\_user\_full\_name](#input\_node\_user\_full\_name) | Full name for the user account | `string` | `"Ansible Service Account"` | no |
-| <a name="input_node_user_ssh_public_keys"></a> [node\_user\_ssh\_public\_keys](#input\_node\_user\_ssh\_public\_keys) | Additional SSH public keys | `list(string)` | `[]` | no |
-| <a name="input_kubespray_version"></a> [kubespray\_version](#input\_kubespray\_version) | Kubespray release version | `string` | `"v2.24.0"` | no |
-| <a name="input_enable_kubespray_deployment"></a> [enable\_kubespray\_deployment](#input\_enable\_kubespray\_deployment) | Enable Kubespray deployment | `bool` | `true` | no |
+| Name                                                                                                               | Description                                                     | Type           | Default                     | Required |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- | -------------- | --------------------------- | :------: |
+| <a name="input_bcm_endpoint"></a> [bcm_endpoint](#input_bcm_endpoint)                                              | BCM API endpoint URL                                            | `string`       | `null`                      |    no    |
+| <a name="input_bcm_username"></a> [bcm_username](#input_bcm_username)                                              | BCM username for authentication                                 | `string`       | `null`                      |    no    |
+| <a name="input_bcm_password"></a> [bcm_password](#input_bcm_password)                                              | BCM password for authentication                                 | `string`       | `null`                      |    no    |
+| <a name="input_bcm_insecure_skip_verify"></a> [bcm_insecure_skip_verify](#input_bcm_insecure_skip_verify)          | Skip TLS certificate verification                               | `bool`         | `true`                      |    no    |
+| <a name="input_control_plane_nodes"></a> [control_plane_nodes](#input_control_plane_nodes)                         | List of BCM node hostnames for control plane                    | `list(string)` | `[]`                        |    no    |
+| <a name="input_worker_nodes"></a> [worker_nodes](#input_worker_nodes)                                              | List of BCM node hostnames for workers                          | `list(string)` | `[]`                        |    no    |
+| <a name="input_etcd_nodes"></a> [etcd_nodes](#input_etcd_nodes)                                                    | List of BCM node hostnames for etcd (defaults to control plane) | `list(string)` | `[]`                        |    no    |
+| <a name="input_cluster_name"></a> [cluster_name](#input_cluster_name)                                              | Kubernetes cluster name identifier                              | `string`       | `"vsphere-k8s-cluster"`     |    no    |
+| <a name="input_kubernetes_version"></a> [kubernetes_version](#input_kubernetes_version)                            | Target Kubernetes version                                       | `string`       | `"v1.28.6"`                 |    no    |
+| <a name="input_cni_plugin"></a> [cni_plugin](#input_cni_plugin)                                                    | CNI plugin for pod networking                                   | `string`       | `"calico"`                  |    no    |
+| <a name="input_ssh_user"></a> [ssh_user](#input_ssh_user)                                                          | SSH username for node access                                    | `string`       | `"ubuntu"`                  |    no    |
+| <a name="input_ssh_private_key"></a> [ssh_private_key](#input_ssh_private_key)                                     | SSH private key (uses auto-generated if null)                   | `string`       | `null`                      |    no    |
+| <a name="input_ssh_private_key_path"></a> [ssh_private_key_path](#input_ssh_private_key_path)                      | Path to SSH private key file (uses auto-generated if null)      | `string`       | `null`                      |    no    |
+| <a name="input_node_username"></a> [node_username](#input_node_username)                                           | Username for BCM node account                                   | `string`       | `"ansible"`                 |    no    |
+| <a name="input_node_password"></a> [node_password](#input_node_password)                                           | Password for the user account                                   | `string`       | `null`                      |    no    |
+| <a name="input_node_user_full_name"></a> [node_user_full_name](#input_node_user_full_name)                         | Full name for the user account                                  | `string`       | `"Ansible Service Account"` |    no    |
+| <a name="input_node_user_ssh_public_keys"></a> [node_user_ssh_public_keys](#input_node_user_ssh_public_keys)       | Additional SSH public keys                                      | `list(string)` | `[]`                        |    no    |
+| <a name="input_kubespray_version"></a> [kubespray_version](#input_kubespray_version)                               | Kubespray release version                                       | `string`       | `"v2.24.0"`                 |    no    |
+| <a name="input_enable_kubespray_deployment"></a> [enable_kubespray_deployment](#input_enable_kubespray_deployment) | Enable Kubespray deployment                                     | `bool`         | `true`                      |    no    |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| <a name="output_discovered_nodes"></a> [discovered\_nodes](#output\_discovered\_nodes) | All nodes discovered from BCM |
-| <a name="output_control_plane_nodes"></a> [control\_plane\_nodes](#output\_control\_plane\_nodes) | Control plane node details |
-| <a name="output_control_plane_ips"></a> [control\_plane\_ips](#output\_control\_plane\_ips) | IP addresses of control plane nodes |
-| <a name="output_worker_nodes"></a> [worker\_nodes](#output\_worker\_nodes) | Worker node details |
-| <a name="output_worker_ips"></a> [worker\_ips](#output\_worker\_ips) | IP addresses of worker nodes |
-| <a name="output_all_node_ips"></a> [all\_node\_ips](#output\_all\_node\_ips) | All Kubernetes node IP addresses |
-| <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | Kubernetes cluster name |
-| <a name="output_kubernetes_version"></a> [kubernetes\_version](#output\_kubernetes\_version) | Deployed Kubernetes version |
-| <a name="output_kubernetes_api_endpoint"></a> [kubernetes\_api\_endpoint](#output\_kubernetes\_api\_endpoint) | Kubernetes API server endpoint |
-| <a name="output_kubespray_inventory"></a> [kubespray\_inventory](#output\_kubespray\_inventory) | Generated Kubespray inventory in YAML |
-| <a name="output_ssh_user"></a> [ssh\_user](#output\_ssh\_user) | SSH username for node access |
-| <a name="output_ssh_public_key"></a> [ssh\_public\_key](#output\_ssh\_public\_key) | Generated SSH public key |
-| <a name="output_ssh_private_key_file"></a> [ssh\_private\_key\_file](#output\_ssh\_private\_key\_file) | Path to generated SSH private key file |
-| <a name="output_created_users"></a> [created\_users](#output\_created\_users) | User created on BCM with SSH key configuration |
-| <a name="output_kubeconfig_ca_certificate"></a> [kubeconfig\_ca\_certificate](#output\_kubeconfig\_ca\_certificate) | Base64-encoded Kubernetes cluster CA certificate |
+| Name                                                                                                           | Description                                      |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| <a name="output_discovered_nodes"></a> [discovered_nodes](#output_discovered_nodes)                            | All nodes discovered from BCM                    |
+| <a name="output_control_plane_nodes"></a> [control_plane_nodes](#output_control_plane_nodes)                   | Control plane node details                       |
+| <a name="output_control_plane_ips"></a> [control_plane_ips](#output_control_plane_ips)                         | IP addresses of control plane nodes              |
+| <a name="output_worker_nodes"></a> [worker_nodes](#output_worker_nodes)                                        | Worker node details                              |
+| <a name="output_worker_ips"></a> [worker_ips](#output_worker_ips)                                              | IP addresses of worker nodes                     |
+| <a name="output_all_node_ips"></a> [all_node_ips](#output_all_node_ips)                                        | All Kubernetes node IP addresses                 |
+| <a name="output_cluster_name"></a> [cluster_name](#output_cluster_name)                                        | Kubernetes cluster name                          |
+| <a name="output_kubernetes_version"></a> [kubernetes_version](#output_kubernetes_version)                      | Deployed Kubernetes version                      |
+| <a name="output_kubernetes_api_endpoint"></a> [kubernetes_api_endpoint](#output_kubernetes_api_endpoint)       | Kubernetes API server endpoint                   |
+| <a name="output_kubespray_inventory"></a> [kubespray_inventory](#output_kubespray_inventory)                   | Generated Kubespray inventory in YAML            |
+| <a name="output_ssh_user"></a> [ssh_user](#output_ssh_user)                                                    | SSH username for node access                     |
+| <a name="output_ssh_public_key"></a> [ssh_public_key](#output_ssh_public_key)                                  | Generated SSH public key                         |
+| <a name="output_ssh_private_key_file"></a> [ssh_private_key_file](#output_ssh_private_key_file)                | Path to generated SSH private key file           |
+| <a name="output_created_users"></a> [created_users](#output_created_users)                                     | User created on BCM with SSH key configuration   |
+| <a name="output_kubeconfig_ca_certificate"></a> [kubeconfig_ca_certificate](#output_kubeconfig_ca_certificate) | Base64-encoded Kubernetes cluster CA certificate |
 
 <!-- END_TF_DOCS -->
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
