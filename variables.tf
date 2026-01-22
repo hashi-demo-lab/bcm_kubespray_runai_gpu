@@ -192,6 +192,28 @@ variable "cni_plugin" {
   }
 }
 
+variable "pod_network_cidr" {
+  description = "CIDR for Kubernetes pod network (from cm-kubernetes-setup.conf networks.pod)"
+  type        = string
+  default     = "172.29.0.0/16"
+
+  validation {
+    condition     = can(cidrhost(var.pod_network_cidr, 0))
+    error_message = "Pod network CIDR must be a valid CIDR notation."
+  }
+}
+
+variable "service_network_cidr" {
+  description = "CIDR for Kubernetes service network (from cm-kubernetes-setup.conf networks.service)"
+  type        = string
+  default     = "10.150.0.0/16"
+
+  validation {
+    condition     = can(cidrhost(var.service_network_cidr, 0))
+    error_message = "Service network CIDR must be a valid CIDR notation."
+  }
+}
+
 # =============================================================================
 # SSH Configuration Variables
 # =============================================================================
@@ -199,7 +221,7 @@ variable "cni_plugin" {
 variable "ssh_user" {
   description = "SSH username for VM access and Ansible connectivity (FR-013)"
   type        = string
-  default     = "ubuntu"
+  default     = "ansiblebcm"
 }
 
 variable "ssh_private_key" {

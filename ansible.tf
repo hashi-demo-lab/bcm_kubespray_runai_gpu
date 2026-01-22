@@ -145,6 +145,8 @@ INVENTORY
         --private-key=/tmp/kubespray_ssh_key \
         -e "kube_version=${var.kubernetes_version}" \
         -e "kube_network_plugin=${var.cni_plugin}" \
+        -e "kube_pods_subnet=${var.pod_network_cidr}" \
+        -e "kube_service_addresses=${var.service_network_cidr}" \
         -e "cluster_name=${var.cluster_name}" \
         -e "ansible_user=${var.ssh_user}" \
         -e "ansible_ssh_private_key_file=/tmp/kubespray_ssh_key"
