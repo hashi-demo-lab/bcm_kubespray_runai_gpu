@@ -159,7 +159,8 @@ resource "terraform_data" "create_user" {
 
       # Use project ansible.cfg and disable vault password to avoid system config issues
       export ANSIBLE_CONFIG="${path.module}/ansible.cfg"
-      export ANSIBLE_VAULT_PASSWORD_FILE=""
+      unset ANSIBLE_VAULT_PASSWORD_FILE
+      unset ANSIBLE_VAULT_PASSWORD
       ansible-playbook --version
 
       # Run the user creation playbook
