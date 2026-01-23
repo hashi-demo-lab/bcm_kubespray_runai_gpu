@@ -245,4 +245,5 @@ output "user_check_result" {
 output "admin_auth_method" {
   description = "Authentication method used for admin access"
   value       = local.use_password_auth ? "password" : "ssh_key"
+  sensitive   = true
 }
