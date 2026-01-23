@@ -14,13 +14,13 @@
 
 set -e
 
-# Target nodes
-NODES=(
-    "cpu-03"
-    "cpu-05"
-    "cpu-06"
-    "dgx-05"
-    "dgx-06"
+# Target nodes (using IP addresses for reliability)
+declare -A NODES=(
+    ["cpu-03"]="10.184.162.102"
+    ["cpu-05"]="10.184.162.104"
+    ["cpu-06"]="10.184.162.121"
+    ["dgx-05"]="10.184.162.109"
+    ["dgx-06"]="10.184.162.110"
 )
 
 # User configuration
@@ -44,7 +44,7 @@ fi
 echo "=========================================="
 echo "Setting up ${USERNAME} user on all nodes"
 echo "=========================================="
-echo "Nodes: ${NODES[*]}"
+echo "Nodes: ${!NODES[*]}"
 echo "UID/GID: ${UID_NUM}"
 echo "=========================================="
 echo ""
@@ -52,12 +52,13 @@ echo ""
 SUCCESS=0
 FAILED=0
 
-for NODE in "${NODES[@]}"; do
+for NODE_NAME in "${!NODES[@]}"; do
+    NODE_IP="${NODES[$NODE_NAME]}"
     echo "----------------------------------------"
-    echo "Configuring: $NODE"
+    echo "Configuring: $NODE_NAME ($NODE_IP)"
     echo "----------------------------------------"
 
-    if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$NODE" "sudo bash -s" << REMOTE_SCRIPT
+    if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$NODE_IP" "sudo bash -s" << REMOTE_SCRIPT
 set -e
 
 # Create group if needed
@@ -94,19 +95,20 @@ id ${USERNAME}
 echo "Node configured successfully"
 REMOTE_SCRIPT
     then
-        echo "SUCCESS: $NODE"
+        echo "SUCCESS: $NODE_NAME ($NODE_IP)"
         ((SUCCESS++))
     else
-        echo "FAILED: $NODE"
+        echo "FAILED: $NODE_NAME ($NODE_IP)"
         ((FAILED++))
     fi
     echo ""
 done
 
+TOTAL=${#NODES[@]}
 echo "=========================================="
 echo "Summary"
 echo "=========================================="
-echo "Successful: $SUCCESS / ${#NODES[@]}"
+echo "Successful: $SUCCESS / $TOTAL"
 echo "Failed: $FAILED"
 echo "=========================================="
 
