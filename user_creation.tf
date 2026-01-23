@@ -157,9 +157,8 @@ resource "terraform_data" "create_user" {
         pip install --user --quiet jinja2 PyYAML 2>/dev/null || \
         echo "Warning: Could not install dependencies, Ansible may fail"
 
-      # Disable vault and use minimal config to avoid system config issues
-      export ANSIBLE_VAULT_PASSWORD_FILE=""
-      export ANSIBLE_CONFIG="/dev/null"
+      # Use project ansible.cfg to avoid system config vault issues
+      export ANSIBLE_CONFIG="${path.module}/ansible.cfg"
       ansible-playbook --version
 
       # Run the user creation playbook
