@@ -276,23 +276,23 @@ variable "ssh_private_key_path" {
 }
 
 # =============================================================================
-# Admin SSH Configuration Variables (for initial user creation)
+# Admin SSH Configuration Variables (for user existence check and creation)
 # =============================================================================
 
 variable "admin_ssh_user" {
-  description = "Admin SSH username for initial connection to create the service account. Typically 'root' or a user with passwordless sudo."
+  description = "Admin SSH username for checking if user exists and creating the service account if needed. Typically 'root' or a user with passwordless sudo."
   type        = string
   default     = "root"
 }
 
 variable "admin_ssh_private_key_path" {
-  description = "Path to admin SSH private key file for initial user creation. Required if skip_user_creation=false. This should be the path to your admin user's SSH private key (e.g., ~/.ssh/id_rsa)."
+  description = "Path to admin SSH private key file for checking and creating the user. Terraform will automatically check if the user exists on all nodes and only create it if needed. Defaults to ~/.ssh/id_rsa if not specified."
   type        = string
-  default     = null
+  default     = "~/.ssh/id_rsa"
 }
 
 variable "skip_user_creation" {
-  description = "Skip automatic user creation via Ansible. Set to true if the user already exists on all nodes."
+  description = "Skip automatic user existence check and creation. Set to true to bypass all user management (useful if you manage users outside of Terraform)."
   type        = bool
   default     = false
 }

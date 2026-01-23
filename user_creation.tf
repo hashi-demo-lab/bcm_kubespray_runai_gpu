@@ -1,11 +1,66 @@
 # Automated User Creation via Ansible
 # Feature: BCM-based Kubernetes Deployment via Kubespray
 #
-# Automatically creates the Ansible service account on BCM nodes using an
-# Ansible playbook executed via Terraform before Kubespray deployment.
-#
+# Automatically detects if the user exists on BCM nodes and creates it if needed.
 # This replaces manual user creation and ensures the user exists before
 # any SSH connectivity checks or Kubespray deployment.
+
+# =============================================================================
+# Check if User Already Exists on Nodes
+# =============================================================================
+
+data "external" "check_user_exists" {
+  # Only run check if we're not explicitly skipping user creation and admin key is provided
+  count = !var.skip_user_creation && var.admin_ssh_private_key_path != null ? 1 : 0
+
+  program = ["bash", "${path.module}/scripts/check-user-exists.sh"]
+
+  query = {
+    nodes           = join(",", [for hostname, ip in local.node_ips : ip])
+    admin_user      = var.admin_ssh_user
+    admin_key       = var.admin_ssh_private_key_path
+    target_username = var.node_username
+  }
+}
+
+# =============================================================================
+# Determine if User Creation is Needed
+# =============================================================================
+
+locals {
+  # Determine if we should actually create the user
+  should_create_user = (
+    # Don't create if explicitly skipped
+    !var.skip_user_creation &&
+    # Don't create if user already exists on all nodes
+    (length(data.external.check_user_exists) == 0 ||
+     try(data.external.check_user_exists[0].result.user_exists, "false") == "false")
+  )
+
+  # User status for output
+  user_status = (
+    var.skip_user_creation ? "Skipped (skip_user_creation=true)" :
+    length(data.external.check_user_exists) == 0 ? "Skipped (no admin SSH key provided)" :
+    try(data.external.check_user_exists[0].result.user_exists, "false") == "true" ? "Skipped (user already exists on all nodes)" :
+    try(data.external.check_user_exists[0].result.user_exists, "false") == "partial" ? "ERROR: User exists on some but not all nodes" :
+    "Created automatically via Ansible"
+  )
+}
+
+# =============================================================================
+# Validation: Fail if User Exists on Some But Not All Nodes
+# =============================================================================
+
+resource "terraform_data" "validate_user_state" {
+  count = !var.skip_user_creation && length(data.external.check_user_exists) > 0 ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = try(data.external.check_user_exists[0].result.user_exists, "false") != "partial"
+      error_message = "User '${var.node_username}' exists on some nodes but not all. Found on ${try(data.external.check_user_exists[0].result.nodes_with_user, "?")} of ${try(data.external.check_user_exists[0].result.checked_nodes, "?")} nodes. Please ensure the user either exists on ALL nodes or NONE, then run terraform apply again."
+    }
+  }
+}
 
 # =============================================================================
 # Ansible Inventory for Admin Access
@@ -18,10 +73,10 @@ locals {
       hosts = {
         for hostname, ip in local.node_ips :
         hostname => {
-          ansible_host = ip
-          ansible_user = var.admin_ssh_user
-          ansible_ssh_private_key_file = var.admin_ssh_private_key_path
-          ansible_ssh_common_args = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-rsa,ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-rsa"
+          ansible_host                  = ip
+          ansible_user                  = var.admin_ssh_user
+          ansible_ssh_private_key_file  = var.admin_ssh_private_key_path
+          ansible_ssh_common_args       = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-rsa,ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-rsa"
         }
       }
     }
@@ -33,10 +88,10 @@ locals {
 # =============================================================================
 
 resource "local_file" "admin_inventory" {
-  count = var.skip_user_creation ? 0 : 1
+  count = local.should_create_user ? 1 : 0
 
-  content = yamlencode(local.user_creation_inventory)
-  filename = "${path.module}/generated_admin_inventory.yml"
+  content         = yamlencode(local.user_creation_inventory)
+  filename        = "${path.module}/generated_admin_inventory.yml"
   file_permission = "0600"
 
   depends_on = [tls_private_key.ssh_key]
@@ -47,12 +102,12 @@ resource "local_file" "admin_inventory" {
 # =============================================================================
 
 resource "terraform_data" "create_user" {
-  count = var.skip_user_creation ? 0 : 1
+  count = local.should_create_user ? 1 : 0
 
   lifecycle {
     precondition {
       condition     = var.admin_ssh_private_key_path != null && var.admin_ssh_private_key_path != ""
-      error_message = "The admin_ssh_private_key_path variable must be set when skip_user_creation=false. Set it to the path of your admin SSH private key (e.g., ~/.ssh/id_rsa) or set skip_user_creation=true if the user already exists."
+      error_message = "The admin_ssh_private_key_path variable must be set to check/create the user. Set it to the path of your admin SSH private key (e.g., ~/.ssh/id_rsa)."
     }
   }
 
@@ -110,7 +165,8 @@ resource "terraform_data" "create_user" {
 
   depends_on = [
     tls_private_key.ssh_key,
-    local_file.admin_inventory
+    local_file.admin_inventory,
+    terraform_data.validate_user_state
   ]
 }
 
@@ -120,5 +176,18 @@ resource "terraform_data" "create_user" {
 
 output "user_creation_status" {
   description = "Status of automated user creation"
-  value = var.skip_user_creation ? "Skipped (user pre-exists)" : "Automated via Ansible playbook"
+  value       = local.user_status
+}
+
+output "user_check_result" {
+  description = "Result of user existence check"
+  value = length(data.external.check_user_exists) > 0 ? {
+    user_exists     = try(data.external.check_user_exists[0].result.user_exists, "not_checked")
+    checked_nodes   = try(data.external.check_user_exists[0].result.checked_nodes, "0")
+    nodes_with_user = try(data.external.check_user_exists[0].result.nodes_with_user, "0")
+  } : {
+    user_exists     = "not_checked"
+    checked_nodes   = "0"
+    nodes_with_user = "0"
+  }
 }

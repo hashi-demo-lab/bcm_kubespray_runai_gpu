@@ -48,9 +48,11 @@ The BCM user account requires:
 ### Node Access Requirements
 
 - **Admin SSH access** to all BCM nodes (typically as `root` or a user with passwordless sudo)
-- Admin SSH private key path must be provided via `admin_ssh_private_key_path` variable
-- The `ansiblebcm` user (UID/GID 60000) is **automatically created** during `terraform apply`
-- User creation can be skipped by setting `skip_user_creation=true` if the user already exists
+- Admin SSH private key (default: `~/.ssh/id_rsa`, configurable via `admin_ssh_private_key_path`)
+- Terraform **automatically checks** if the `ansiblebcm` user exists on all nodes
+  - If exists on all nodes: Skips creation
+  - If doesn't exist: Creates automatically via Ansible
+  - If exists on some but not all: Fails with error (inconsistent state)
 
 ## Quick Start
 
@@ -84,16 +86,16 @@ In your HCP Terraform workspace, configure sensitive variables:
 
 - `bcm_username` - BCM API username
 - `bcm_password` - BCM API password
-- `admin_ssh_private_key_path` - Path to admin SSH private key (e.g., `~/.ssh/id_rsa`)
 - `node_password` - Password for the Ansible service account (optional)
 
-Optionally configure:
-- `admin_ssh_user` - Admin username for initial connection (default: `root`)
-- `skip_user_creation` - Set to `true` if the ansiblebcm user already exists (default: `false`)
+Optional configuration (with sensible defaults):
+- `admin_ssh_user` - Admin username for user checks/creation (default: `root`)
+- `admin_ssh_private_key_path` - Path to admin SSH key (default: `~/.ssh/id_rsa`)
+- `skip_user_creation` - Bypass all user management (default: `false`)
 
 ### 4. Deploy Infrastructure
 
-User creation is now **fully automated**! Simply run:
+User management is now **fully automated with intelligent detection**! Simply run:
 
 ```bash
 terraform init
@@ -103,11 +105,17 @@ terraform apply
 
 The deployment will:
 1. Generate SSH keys automatically
-2. Run an Ansible playbook to create the `ansiblebcm` user on all nodes
-3. Wait for SSH connectivity
-4. Deploy Kubernetes via Kubespray
+2. **Check if the `ansiblebcm` user exists on all nodes**
+3. **Conditionally create the user** only if it doesn't exist
+4. Wait for SSH connectivity
+5. Deploy Kubernetes via Kubespray
 
-**Manual Alternative**: If you prefer to create the user manually before Terraform, see [scripts/README.md](scripts/README.md) and set `skip_user_creation=true`.
+**What happens during user check:**
+- ✅ User exists on all nodes → Terraform skips creation
+- ✅ User doesn't exist on any nodes → Terraform creates automatically via Ansible
+- ❌ User exists on some but not all → Terraform fails with clear error message
+
+**Manual Alternative**: If you manage users outside of Terraform, set `skip_user_creation=true` to bypass all user management. See [scripts/README.md](scripts/README.md) for manual scripts.
 
 ### 5. Access the Cluster
 
