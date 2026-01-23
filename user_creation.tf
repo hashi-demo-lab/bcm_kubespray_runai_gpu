@@ -223,6 +223,7 @@ resource "terraform_data" "create_user" {
 output "user_creation_status" {
   description = "Status of automated user creation"
   value       = local.user_status
+  sensitive   = true
 }
 
 output "user_check_result" {
