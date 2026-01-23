@@ -12,7 +12,8 @@
 #   ./setup-nodes-from-head.sh "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB..."
 # =============================================================================
 
-set -e
+# Don't exit on error - we want to try all nodes
+set +e
 
 # Target nodes (using IP addresses for reliability)
 declare -A NODES=(
@@ -58,7 +59,7 @@ for NODE_NAME in "${!NODES[@]}"; do
     echo "Configuring: $NODE_NAME ($NODE_IP)"
     echo "----------------------------------------"
 
-    if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$NODE_IP" "sudo bash -s" << REMOTE_SCRIPT
+    if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "$NODE_IP" "sudo bash -s" 2>&1 << REMOTE_SCRIPT
 set -e
 
 # Create group if needed
