@@ -150,6 +150,13 @@ resource "terraform_data" "create_user" {
         exit 1
       fi
 
+      # Ensure Ansible dependencies are installed (jinja2, etc.)
+      echo "Checking Ansible dependencies..."
+      pip3 install --user --quiet jinja2 PyYAML 2>/dev/null || \
+        pip3 install --break-system-packages --quiet jinja2 PyYAML 2>/dev/null || \
+        pip install --user --quiet jinja2 PyYAML 2>/dev/null || \
+        echo "Warning: Could not install dependencies, Ansible may fail"
+
       # Display Ansible version
       ansible-playbook --version
 
