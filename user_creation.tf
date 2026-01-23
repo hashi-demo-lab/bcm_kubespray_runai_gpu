@@ -37,13 +37,21 @@ locals {
      try(data.external.check_user_exists[0].result.user_exists, "false") == "false")
   )
 
+  # Check method from the script
+  check_method = length(data.external.check_user_exists) > 0 ? try(data.external.check_user_exists[0].result.check_method, "not_checked") : "not_checked"
+
+  # Check error message if any
+  check_error = length(data.external.check_user_exists) > 0 ? try(data.external.check_user_exists[0].result.error, "none") : "none"
+
   # User status for output
   user_status = (
     var.skip_user_creation ? "Skipped (skip_user_creation=true)" :
     length(data.external.check_user_exists) == 0 ? "Skipped (no admin SSH key provided)" :
+    local.check_method == "error" ? "Creating (check failed: ${local.check_error})" :
+    local.check_method == "skipped" ? "Creating (SSH key not found, assuming user doesn't exist)" :
     try(data.external.check_user_exists[0].result.user_exists, "false") == "true" ? "Skipped (user already exists on all nodes)" :
     try(data.external.check_user_exists[0].result.user_exists, "false") == "partial" ? "ERROR: User exists on some but not all nodes" :
-    "Created automatically via Ansible"
+    "Creating (user not found on any node)"
   )
 }
 
@@ -185,9 +193,13 @@ output "user_check_result" {
     user_exists     = try(data.external.check_user_exists[0].result.user_exists, "not_checked")
     checked_nodes   = try(data.external.check_user_exists[0].result.checked_nodes, "0")
     nodes_with_user = try(data.external.check_user_exists[0].result.nodes_with_user, "0")
+    check_method    = try(data.external.check_user_exists[0].result.check_method, "not_checked")
+    error           = try(data.external.check_user_exists[0].result.error, "none")
   } : {
     user_exists     = "not_checked"
     checked_nodes   = "0"
     nodes_with_user = "0"
+    check_method    = "not_checked"
+    error           = "none"
   }
 }
