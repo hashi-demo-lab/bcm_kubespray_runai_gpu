@@ -21,6 +21,12 @@ locals {
 # BCM User Resource with SSH Keys
 # =============================================================================
 
+# Ensure the group exists before creating the user
+resource "bcm_cmuser_group" "node_group" {
+  name = var.node_username
+  gid  = var.node_user_gid
+}
+
 resource "bcm_cmuser_user" "node_user" {
   username       = var.node_username
   password       = var.node_password
@@ -31,7 +37,7 @@ resource "bcm_cmuser_user" "node_user" {
 
   # Optional UID/GID
   uid = var.node_user_uid
-  gid = var.node_user_gid
+  gid = bcm_cmuser_group.node_group.gid
 
   # SSH public keys for passwordless authentication
   # NOTE: BCM stores keys but doesn't deploy them to nodes - manual deployment required
@@ -39,7 +45,7 @@ resource "bcm_cmuser_user" "node_user" {
   authorized_ssh_keys = local.all_ssh_public_keys_string
 
   # Ensure SSH key is generated before user creation
-  depends_on = [tls_private_key.ssh_key]
+  depends_on = [tls_private_key.ssh_key, bcm_cmuser_group.node_group]
 
   lifecycle {
     create_before_destroy = true
