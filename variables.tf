@@ -299,9 +299,9 @@ variable "admin_ssh_private_key_path" {
 }
 
 variable "skip_user_creation" {
-  description = "Skip automatic user existence check and creation. Set to true to bypass all user management (useful if you manage users outside of Terraform)."
+  description = "Skip automatic user existence check and creation. Set to true when ansiblebcm user is pre-configured in the boot image."
   type        = bool
-  default     = false
+  default     = true
 }
 
 # =============================================================================
