@@ -166,7 +166,9 @@ INVENTORY
 
       cd /tmp/kubespray
 
-      # Write registry mirrors config for Kubespray
+      # Write extra config for Kubespray
+      # nginx_kube_apiserver_healthcheck_port: BCM Command Manager uses port 8081,
+      # so we use 8082 for the nginx-proxy healthcheck to avoid conflicts on worker nodes
       cat > /tmp/kubespray_registry_config.yml << 'REGCONFIG'
 containerd_registries_mirrors:
   - prefix: docker.io
@@ -189,6 +191,7 @@ REGCONFIG
         -e "cluster_name=${var.cluster_name}" \
         -e "ansible_user=${var.ssh_user}" \
         -e "ansible_ssh_private_key_file=/tmp/kubespray_ssh_key" \
+        -e "nginx_kube_apiserver_healthcheck_port=8082" \
         -e "@/tmp/kubespray_registry_config.yml"
 
       echo "=== Kubespray deployment completed ==="
