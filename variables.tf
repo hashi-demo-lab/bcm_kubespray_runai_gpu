@@ -280,15 +280,22 @@ variable "ssh_private_key_path" {
 # =============================================================================
 
 variable "admin_ssh_user" {
-  description = "Admin SSH username for checking if user exists and creating the service account if needed. Typically 'root' or a user with passwordless sudo."
+  description = "Admin SSH username for checking if user exists and creating the service account if needed. Typically 'root' or a user with passwordless sudo (e.g., 'ibm')."
   type        = string
-  default     = "root"
+  default     = "ibm"
+}
+
+variable "admin_ssh_password" {
+  description = "Admin SSH password for initial access to nodes. Used with sshpass for password-based authentication. Required when nodes reset on reboot and don't have pre-configured SSH keys."
+  type        = string
+  sensitive   = true
+  default     = null
 }
 
 variable "admin_ssh_private_key_path" {
-  description = "Path to admin SSH private key file for checking and creating the user. Terraform will automatically check if the user exists on all nodes and only create it if needed. Defaults to ~/.ssh/id_rsa if not specified."
+  description = "Path to admin SSH private key file. If admin_ssh_password is set, password auth is used instead. Set to null to use password authentication only."
   type        = string
-  default     = "~/.ssh/id_rsa"
+  default     = null
 }
 
 variable "skip_user_creation" {

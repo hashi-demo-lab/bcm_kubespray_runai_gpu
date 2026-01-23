@@ -2,23 +2,37 @@
 # Feature: BCM-based Kubernetes Deployment via Kubespray
 #
 # Automatically detects if the user exists on BCM nodes and creates it if needed.
+# Supports both password-based (sshpass) and key-based SSH authentication.
 # This replaces manual user creation and ensures the user exists before
 # any SSH connectivity checks or Kubespray deployment.
+
+# =============================================================================
+# Determine Authentication Method
+# =============================================================================
+
+locals {
+  # Use password auth if password is provided, otherwise use key
+  use_password_auth = var.admin_ssh_password != null && var.admin_ssh_password != ""
+
+  # Determine if we have valid auth credentials
+  has_admin_credentials = local.use_password_auth || (var.admin_ssh_private_key_path != null && var.admin_ssh_private_key_path != "")
+}
 
 # =============================================================================
 # Check if User Already Exists on Nodes
 # =============================================================================
 
 data "external" "check_user_exists" {
-  # Only run check if we're not explicitly skipping user creation and admin key is provided
-  count = !var.skip_user_creation && var.admin_ssh_private_key_path != null ? 1 : 0
+  # Only run check if we're not explicitly skipping and have credentials
+  count = !var.skip_user_creation && local.has_admin_credentials ? 1 : 0
 
   program = ["bash", "${path.module}/scripts/check-user-exists.sh"]
 
   query = {
     nodes           = join(",", [for hostname, ip in local.node_ips : ip])
     admin_user      = var.admin_ssh_user
-    admin_key       = var.admin_ssh_private_key_path
+    admin_key       = var.admin_ssh_private_key_path != null ? var.admin_ssh_private_key_path : ""
+    admin_password  = var.admin_ssh_password != null ? var.admin_ssh_password : ""
     target_username = var.node_username
   }
 }
@@ -32,6 +46,8 @@ locals {
   should_create_user = (
     # Don't create if explicitly skipped
     !var.skip_user_creation &&
+    # Must have admin credentials
+    local.has_admin_credentials &&
     # Don't create if user already exists on all nodes
     (length(data.external.check_user_exists) == 0 ||
      try(data.external.check_user_exists[0].result.user_exists, "false") == "false")
@@ -46,9 +62,9 @@ locals {
   # User status for output
   user_status = (
     var.skip_user_creation ? "Skipped (skip_user_creation=true)" :
-    length(data.external.check_user_exists) == 0 ? "Skipped (no admin SSH key provided)" :
+    !local.has_admin_credentials ? "Skipped (no admin credentials provided)" :
     local.check_method == "error" ? "Creating (check failed: ${local.check_error})" :
-    local.check_method == "skipped" ? "Creating (SSH key not found, assuming user doesn't exist)" :
+    local.check_method == "skipped" ? "Creating (SSH connection failed, assuming user doesn't exist)" :
     try(data.external.check_user_exists[0].result.user_exists, "false") == "true" ? "Skipped (user already exists on all nodes)" :
     try(data.external.check_user_exists[0].result.user_exists, "false") == "partial" ? "ERROR: User exists on some but not all nodes" :
     "Creating (user not found on any node)"
@@ -76,16 +92,23 @@ resource "terraform_data" "validate_user_state" {
 
 locals {
   # Ansible inventory for user creation (connects as admin user)
+  # Uses password auth if password is set, otherwise uses key auth
   user_creation_inventory = {
     all = {
       hosts = {
         for hostname, ip in local.node_ips :
-        hostname => {
-          ansible_host                  = ip
-          ansible_user                  = var.admin_ssh_user
-          ansible_ssh_private_key_file  = var.admin_ssh_private_key_path
-          ansible_ssh_common_args       = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-rsa,ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-rsa"
-        }
+        hostname => merge(
+          {
+            ansible_host            = ip
+            ansible_user            = var.admin_ssh_user
+            ansible_ssh_common_args = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-rsa,ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-rsa"
+          },
+          local.use_password_auth ? {
+            ansible_ssh_pass = var.admin_ssh_password
+          } : {
+            ansible_ssh_private_key_file = var.admin_ssh_private_key_path
+          }
+        )
       }
     }
   }
@@ -95,7 +118,7 @@ locals {
 # Write Admin Inventory File
 # =============================================================================
 
-resource "local_file" "admin_inventory" {
+resource "local_sensitive_file" "admin_inventory" {
   count = local.should_create_user ? 1 : 0
 
   content         = yamlencode(local.user_creation_inventory)
@@ -114,8 +137,8 @@ resource "terraform_data" "create_user" {
 
   lifecycle {
     precondition {
-      condition     = var.admin_ssh_private_key_path != null && var.admin_ssh_private_key_path != ""
-      error_message = "The admin_ssh_private_key_path variable must be set to check/create the user. Set it to the path of your admin SSH private key (e.g., ~/.ssh/id_rsa)."
+      condition     = local.has_admin_credentials
+      error_message = "Either admin_ssh_password or admin_ssh_private_key_path must be set to create the user."
     }
   }
 
@@ -141,6 +164,7 @@ resource "terraform_data" "create_user" {
       echo "GID: ${var.node_user_gid}"
       echo "Target Nodes: ${join(", ", keys(local.node_ips))}"
       echo "Admin User: ${var.admin_ssh_user}"
+      echo "Auth Method: ${local.use_password_auth ? "Password" : "SSH Key"}"
       echo "=========================================="
 
       # Check if ansible is available
@@ -150,22 +174,26 @@ resource "terraform_data" "create_user" {
         exit 1
       fi
 
-      # Ensure Ansible dependencies are installed (jinja2, etc.)
-      echo "Checking Ansible dependencies..."
-      pip3 install --user --quiet jinja2 PyYAML 2>/dev/null || \
-        pip3 install --break-system-packages --quiet jinja2 PyYAML 2>/dev/null || \
-        pip install --user --quiet jinja2 PyYAML 2>/dev/null || \
-        echo "Warning: Could not install dependencies, Ansible may fail"
+      # Check if sshpass is available when using password auth
+      if ${local.use_password_auth ? "true" : "false"}; then
+        if ! command -v sshpass &> /dev/null; then
+          echo "ERROR: sshpass not found in PATH (required for password authentication)"
+          echo "Please install sshpass: apt-get install sshpass or yum install sshpass"
+          exit 1
+        fi
+      fi
 
       # Use project ansible.cfg and disable vault password to avoid system config issues
       export ANSIBLE_CONFIG="${path.module}/ansible.cfg"
       unset ANSIBLE_VAULT_PASSWORD_FILE
       unset ANSIBLE_VAULT_PASSWORD
+      # Allow password auth in ansible
+      export ANSIBLE_HOST_KEY_CHECKING=False
       ansible-playbook --version
 
       # Run the user creation playbook
       ansible-playbook \
-        -i ${local_file.admin_inventory[0].filename} \
+        -i ${local_sensitive_file.admin_inventory[0].filename} \
         ${path.module}/playbooks/create-user.yml \
         -e "target_username=${var.node_username}" \
         -e "target_uid=${var.node_user_uid}" \
@@ -176,14 +204,14 @@ resource "terraform_data" "create_user" {
         -v
 
       echo "=========================================="
-      echo "✓ User creation completed successfully"
+      echo "User creation completed successfully"
       echo "=========================================="
     EOT
   }
 
   depends_on = [
     tls_private_key.ssh_key,
-    local_file.admin_inventory,
+    local_sensitive_file.admin_inventory,
     terraform_data.validate_user_state
   ]
 }
@@ -212,4 +240,9 @@ output "user_check_result" {
     check_method    = "not_checked"
     error           = "none"
   }
+}
+
+output "admin_auth_method" {
+  description = "Authentication method used for admin access"
+  value       = local.use_password_auth ? "password" : "ssh_key"
 }
