@@ -12,12 +12,16 @@ resource "terraform_data" "wait_for_nodes" {
 
   triggers_replace = [
     local.vm_ip_addresses[count.index],
-    # Re-trigger if user is recreated (SSH key changes)
-    bcm_cmuser_user.node_user.id
+    # Re-trigger if SSH key changes
+    tls_private_key.ssh_key.id
   ]
 
-  # Ensure BCM user with SSH key is created before attempting SSH connection
-  depends_on = [bcm_cmuser_user.node_user]
+  # Ensure SSH key is generated and user is created before attempting SSH connection
+  # User is automatically created via Ansible playbook (see user_creation.tf)
+  depends_on = [
+    tls_private_key.ssh_key,
+    terraform_data.create_user
+  ]
 
   # Use local-exec with SSH options to support legacy host key algorithms (ssh-rsa, ssh-dss)
   # Required for older BCM nodes that don't support newer key exchange algorithms

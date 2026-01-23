@@ -276,6 +276,28 @@ variable "ssh_private_key_path" {
 }
 
 # =============================================================================
+# Admin SSH Configuration Variables (for initial user creation)
+# =============================================================================
+
+variable "admin_ssh_user" {
+  description = "Admin SSH username for initial connection to create the service account. Typically 'root' or a user with passwordless sudo."
+  type        = string
+  default     = "root"
+}
+
+variable "admin_ssh_private_key_path" {
+  description = "Path to admin SSH private key file for initial user creation. Required if skip_user_creation=false. This should be the path to your admin user's SSH private key (e.g., ~/.ssh/id_rsa)."
+  type        = string
+  default     = null
+}
+
+variable "skip_user_creation" {
+  description = "Skip automatic user creation via Ansible. Set to true if the user already exists on all nodes."
+  type        = bool
+  default     = false
+}
+
+# =============================================================================
 # Kubespray Configuration Variables
 # =============================================================================
 

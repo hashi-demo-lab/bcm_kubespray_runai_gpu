@@ -1,0 +1,136 @@
+---
+# =============================================================================
+# Ansible Playbook: Create Service Account User
+# =============================================================================
+# Creates the Ansible service account (ansiblebcm) on all BCM nodes
+# before Kubespray deployment.
+#
+# This playbook is automatically run by Terraform before SSH connectivity
+# checks and Kubespray deployment.
+#
+# Requirements:
+#   - Ansible connection as privileged user (root or sudo user)
+#   - Target nodes accessible via SSH
+#
+# Variables (passed from Terraform):
+#   - target_username: Username to create (default: ansiblebcm)
+#   - target_uid: User ID (default: 60000)
+#   - target_gid: Group ID (default: 60000)
+#   - target_home_dir: Home directory (default: /home/{{ target_username }})
+#   - target_shell: User shell (default: /bin/bash)
+#   - ssh_public_key: SSH public key for passwordless authentication
+# =============================================================================
+
+- name: Create Ansible Service Account User
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    target_username: "{{ target_username | default('ansiblebcm') }}"
+    target_uid: "{{ target_uid | default(60000) }}"
+    target_gid: "{{ target_gid | default(60000) }}"
+    target_home_dir: "{{ target_home_dir | default('/home/' ~ target_username) }}"
+    target_shell: "{{ target_shell | default('/bin/bash') }}"
+
+  tasks:
+    - name: Display configuration
+      ansible.builtin.debug:
+        msg:
+          - "Creating user: {{ target_username }}"
+          - "UID: {{ target_uid }}"
+          - "GID: {{ target_gid }}"
+          - "Home: {{ target_home_dir }}"
+          - "Shell: {{ target_shell }}"
+
+    - name: Create user group
+      ansible.builtin.group:
+        name: "{{ target_username }}"
+        gid: "{{ target_gid }}"
+        state: present
+      register: group_result
+
+    - name: Display group creation result
+      ansible.builtin.debug:
+        msg: "Group '{{ target_username }}' {{ 'created' if group_result.changed else 'already exists' }}"
+
+    - name: Create user account
+      ansible.builtin.user:
+        name: "{{ target_username }}"
+        uid: "{{ target_uid }}"
+        group: "{{ target_username }}"
+        home: "{{ target_home_dir }}"
+        shell: "{{ target_shell }}"
+        create_home: true
+        state: present
+      register: user_result
+
+    - name: Display user creation result
+      ansible.builtin.debug:
+        msg: "User '{{ target_username }}' {{ 'created' if user_result.changed else 'already exists' }}"
+
+    - name: Ensure .ssh directory exists
+      ansible.builtin.file:
+        path: "{{ target_home_dir }}/.ssh"
+        state: directory
+        owner: "{{ target_username }}"
+        group: "{{ target_username }}"
+        mode: '0700'
+
+    - name: Add SSH public key to authorized_keys
+      ansible.builtin.authorized_key:
+        user: "{{ target_username }}"
+        state: present
+        key: "{{ ssh_public_key }}"
+        exclusive: false
+      when: ssh_public_key is defined and ssh_public_key | length > 0
+
+    - name: Configure passwordless sudo
+      ansible.builtin.copy:
+        content: "{{ target_username }} ALL=(ALL) NOPASSWD:ALL\n"
+        dest: "/etc/sudoers.d/{{ target_username }}"
+        owner: root
+        group: root
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Verify user was created correctly
+      ansible.builtin.command: "id {{ target_username }}"
+      register: user_id_result
+      changed_when: false
+
+    - name: Display user verification
+      ansible.builtin.debug:
+        msg: "{{ user_id_result.stdout }}"
+
+    - name: Verify SSH key was added
+      ansible.builtin.stat:
+        path: "{{ target_home_dir }}/.ssh/authorized_keys"
+      register: ssh_key_stat
+
+    - name: Display SSH key verification
+      ansible.builtin.debug:
+        msg: "SSH authorized_keys {{ 'exists' if ssh_key_stat.stat.exists else 'NOT FOUND' }}"
+
+    - name: Verify sudo configuration
+      ansible.builtin.stat:
+        path: "/etc/sudoers.d/{{ target_username }}"
+      register: sudo_stat
+
+    - name: Display sudo verification
+      ansible.builtin.debug:
+        msg: "Sudo configuration {{ 'exists' if sudo_stat.stat.exists else 'NOT FOUND' }}"
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "User Creation Summary"
+          - "=========================================="
+          - "Username: {{ target_username }}"
+          - "UID/GID: {{ target_uid }}/{{ target_gid }}"
+          - "Home: {{ target_home_dir }}"
+          - "Shell: {{ target_shell }}"
+          - "SSH Key: {{ 'Configured' if ssh_key_stat.stat.exists else 'NOT CONFIGURED' }}"
+          - "Sudo: {{ 'Configured' if sudo_stat.stat.exists else 'NOT CONFIGURED' }}"
+          - "=========================================="

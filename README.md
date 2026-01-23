@@ -43,7 +43,14 @@ This Terraform project automates the deployment of a Kubernetes cluster on BCM-m
 The BCM user account requires:
 
 - Read access to node inventory (`bcm_cmdevice_nodes` data source)
-- User management permissions (`bcm_cmuser_user` resource)
+- Read access to network configurations (`bcm_cmnet_networks` data source)
+
+### Node Access Requirements
+
+- **Admin SSH access** to all BCM nodes (typically as `root` or a user with passwordless sudo)
+- Admin SSH private key path must be provided via `admin_ssh_private_key_path` variable
+- The `ansiblebcm` user (UID/GID 60000) is **automatically created** during `terraform apply`
+- User creation can be skipped by setting `skip_user_creation=true` if the user already exists
 
 ## Quick Start
 
@@ -77,15 +84,30 @@ In your HCP Terraform workspace, configure sensitive variables:
 
 - `bcm_username` - BCM API username
 - `bcm_password` - BCM API password
+- `admin_ssh_private_key_path` - Path to admin SSH private key (e.g., `~/.ssh/id_rsa`)
 - `node_password` - Password for the Ansible service account (optional)
 
+Optionally configure:
+- `admin_ssh_user` - Admin username for initial connection (default: `root`)
+- `skip_user_creation` - Set to `true` if the ansiblebcm user already exists (default: `false`)
+
 ### 4. Deploy Infrastructure
+
+User creation is now **fully automated**! Simply run:
 
 ```bash
 terraform init
 terraform plan
 terraform apply
 ```
+
+The deployment will:
+1. Generate SSH keys automatically
+2. Run an Ansible playbook to create the `ansiblebcm` user on all nodes
+3. Wait for SSH connectivity
+4. Deploy Kubernetes via Kubespray
+
+**Manual Alternative**: If you prefer to create the user manually before Terraform, see [scripts/README.md](scripts/README.md) and set `skip_user_creation=true`.
 
 ### 5. Access the Cluster
 
