@@ -62,9 +62,9 @@ variable "enable_runai" {
 }
 
 variable "runai_version" {
-  description = "Run:AI Helm chart version"
+  description = "Run:AI Helm chart version (cluster-installer)"
   type        = string
-  default     = "2.19.0"
+  default     = "2.22.15"
 }
 
 variable "runai_cluster_name" {
@@ -111,7 +111,7 @@ variable "enable_gpu_operator" {
 variable "gpu_operator_version" {
   description = "NVIDIA GPU Operator Helm chart version"
   type        = string
-  default     = "v24.6.0"
+  default     = "v25.3.3"
 }
 
 variable "gpu_driver_enabled" {
@@ -177,4 +177,118 @@ variable "runai_tls_key" {
   type        = string
   sensitive   = true
   default     = ""
+}
+
+# =============================================================================
+# Prometheus Stack Configuration
+# Required dependency for Run:AI metrics
+# =============================================================================
+
+variable "enable_prometheus" {
+  description = "Enable kube-prometheus-stack deployment"
+  type        = bool
+  default     = true
+}
+
+variable "prometheus_stack_version" {
+  description = "kube-prometheus-stack Helm chart version"
+  type        = string
+  default     = "77.6.2"
+}
+
+variable "enable_grafana" {
+  description = "Enable Grafana deployment as part of prometheus stack"
+  type        = bool
+  default     = true
+}
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+  default     = "admin"
+}
+
+# =============================================================================
+# Prometheus Adapter Configuration
+# Required dependency for Run:AI custom metrics
+# =============================================================================
+
+variable "enable_prometheus_adapter" {
+  description = "Enable prometheus-adapter deployment"
+  type        = bool
+  default     = true
+}
+
+variable "prometheus_adapter_version" {
+  description = "prometheus-adapter Helm chart version"
+  type        = string
+  default     = "5.1.0"
+}
+
+# =============================================================================
+# Metrics Server Configuration
+# Provides resource metrics for kubectl top and HPA
+# =============================================================================
+
+variable "enable_metrics_server" {
+  description = "Enable metrics-server deployment"
+  type        = bool
+  default     = true
+}
+
+variable "metrics_server_version" {
+  description = "metrics-server Helm chart version"
+  type        = string
+  default     = "3.13.0"
+}
+
+# =============================================================================
+# LeaderWorkerSet Operator Configuration
+# Required dependency for Run:AI distributed training
+# =============================================================================
+
+variable "enable_lws_operator" {
+  description = "Enable LeaderWorkerSet operator deployment"
+  type        = bool
+  default     = true
+}
+
+variable "lws_operator_version" {
+  description = "LeaderWorkerSet operator Helm chart version"
+  type        = string
+  default     = "v0.7.0"
+}
+
+# =============================================================================
+# Knative Operator Configuration
+# Required dependency for Run:AI serverless inference
+# =============================================================================
+
+variable "enable_knative_operator" {
+  description = "Enable Knative operator deployment"
+  type        = bool
+  default     = true
+}
+
+variable "knative_operator_version" {
+  description = "Knative operator Helm chart version"
+  type        = string
+  default     = "v1.19.2"
+}
+
+variable "enable_knative_serving" {
+  description = "Enable Knative Serving (deployed by operator)"
+  type        = bool
+  default     = false
+}
+
+# =============================================================================
+# GPU Toolkit Configuration
+# =============================================================================
+
+variable "gpu_toolkit_enabled" {
+  description = "Deploy NVIDIA Container Toolkit (set false if pre-installed on DGX nodes)"
+  type        = bool
+  default     = true
 }

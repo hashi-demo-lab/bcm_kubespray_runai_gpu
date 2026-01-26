@@ -18,7 +18,9 @@ This Terraform project automates the deployment of a Kubernetes cluster on BCM-m
 - Automated SSH key generation and user provisioning
 - Kubespray-based Kubernetes deployment
 - CNI plugin support (Calico, Flannel, Cilium)
-- GPU operator and Run:AI platform integration
+- **GPU Node Preparation** with prerequisite validation and labeling
+- **NVIDIA GPU Operator** v25.3.3 with configurable driver installation
+- **Complete Run:AI Platform** with all dependencies (Prometheus, Knative, LeaderWorkerSet)
 - HCP Terraform remote state management
 - Security-first design with auto-generated SSH key authentication
 
@@ -194,19 +196,95 @@ The following ports must be accessible between cluster nodes:
 ## Project Structure
 
 ```
-├── main.tf              # BCM node discovery and filtering
-├── providers.tf         # BCM and Ansible provider configuration
-├── terraform.tf         # Provider version constraints
-├── variables.tf         # Input variable declarations
-├── outputs.tf           # Output value declarations
-├── locals.tf            # Computed values and inventory generation
-├── user.tf              # BCM user management with SSH keys
-├── ssh_key.tf           # SSH key pair generation
-├── ansible.tf           # Kubespray deployment automation
-├── inventory.tf         # Kubespray inventory file generation
-├── kubeconfig.tf        # Kubeconfig extraction post-deployment
-└── helm_platform/       # GPU operator, ingress, Run:AI Helm charts
+├── main.tf                    # BCM node discovery and filtering
+├── providers.tf               # BCM and Ansible provider configuration
+├── terraform.tf               # Provider version constraints
+├── variables.tf               # Input variable declarations
+├── outputs.tf                 # Output value declarations
+├── locals.tf                  # Computed values and inventory generation
+├── user.tf                    # BCM user management with SSH keys
+├── ssh_key.tf                 # SSH key pair generation
+├── ansible.tf                 # Kubespray deployment automation
+├── inventory.tf               # Kubespray inventory file generation
+├── kubeconfig.tf              # Kubeconfig extraction post-deployment
+├── gpu_node_preparation.tf    # GPU node labeling and prerequisite validation
+├── helm_platform/             # Platform services (see helm_platform/README.md)
+│   ├── gpu-operator.tf        # NVIDIA GPU Operator (v25.3.3)
+│   ├── prometheus.tf          # kube-prometheus-stack (v77.6.2)
+│   ├── prometheus-adapter.tf  # Prometheus Adapter (v5.1.0)
+│   ├── metrics-server.tf      # Kubernetes Metrics Server (v3.13.0)
+│   ├── lws.tf                 # LeaderWorkerSet Operator (v0.7.0)
+│   ├── knative.tf             # Knative Operator (v1.19.2)
+│   ├── ingress.tf             # NGINX Ingress Controller
+│   ├── runai.tf               # Run:AI Cluster (v2.22.15)
+│   └── storage.tf             # local-path-provisioner
+├── scripts/                   # Helper scripts (see scripts/README.md)
+│   ├── check-gpu-operator-prereqs.sh
+│   ├── relocate-containerd.sh
+│   └── setup-helm-nfs.sh
+└── docs/                      # Documentation
+    └── GPU_OPERATOR_PREREQUISITES.md
 ```
+
+## GPU Node Preparation
+
+Before deploying the GPU Operator, the following prerequisites are automatically validated:
+
+1. **Disk Space Validation** - GPU nodes must have at least 10GB available for containerd storage
+2. **SSH Connectivity** - Validates SSH access to all GPU nodes
+3. **Containerd Status** - Verifies containerd is running
+
+If validation fails, Terraform will stop with an error message directing you to the remediation steps in [docs/GPU_OPERATOR_PREREQUISITES.md](docs/GPU_OPERATOR_PREREQUISITES.md).
+
+### GPU Node Configuration
+
+```hcl
+# GPU nodes to prepare (defaults to worker_nodes if not specified)
+gpu_worker_nodes = ["dgx-05", "dgx-06"]
+
+# Enable GPU node labeling (nvidia.com/gpu.present=true)
+enable_gpu_node_labels = true
+
+# Enable prerequisite validation (fail if disk space insufficient)
+enable_gpu_prereq_validation = true
+
+# Minimum required disk space in GB for containerd
+min_containerd_space_gb = 10
+```
+
+**Note for DGX Systems**: If your `/var` partition is too small, manually relocate containerd to a larger partition **before** running Terraform:
+```bash
+./scripts/relocate-containerd.sh dgx-05 /local
+./scripts/relocate-containerd.sh dgx-06 /local
+```
+
+## Helm Platform Module
+
+The `helm_platform/` module deploys the complete Run:AI platform with all dependencies. See [helm_platform/README.md](helm_platform/README.md) for full documentation.
+
+### Deployment Order
+
+```
+Kubespray → GPU Node Prep → Prometheus Stack → Prometheus Adapter
+                                      ↓
+                              Metrics Server
+                                      ↓
+            LWS Operator → Knative Operator → Ingress → Run:AI
+```
+
+### Run:AI Prerequisites
+
+Run:AI SaaS requires the following dependencies (all deployed automatically):
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| GPU Operator | v25.3.3 | GPU resource management |
+| Prometheus Stack | v77.6.2 | Metrics collection |
+| Prometheus Adapter | v5.1.0 | Custom metrics API |
+| Metrics Server | v3.13.0 | Resource metrics |
+| LeaderWorkerSet | v0.7.0 | Distributed training |
+| Knative Operator | v1.19.2 | Serverless inference |
+| NGINX Ingress | - | External access |
 
 ## Security Considerations
 

@@ -1,7 +1,8 @@
 # Run:AI Cluster Configuration
 # Feature: Run:AI Platform Deployment
-# Spec: /workspace/specs/002-runai-deployment/plan.md
-# Dependency: GPU Operator, Prometheus, Ingress (all must be ready)
+# Spec: cm-kubernetes-setup.conf - Run:ai (SaaS)
+# Dependencies: GPU Operator, Prometheus Stack, Prometheus Adapter,
+#               LeaderWorkerSet Operator, Knative Operator, Ingress
 
 # =============================================================================
 # Run:AI Namespace
@@ -94,14 +95,14 @@ resource "kubernetes_secret" "runai_tls" {
 resource "helm_release" "runai_cluster" {
   count = var.enable_runai && var.runai_cluster_token != "" ? 1 : 0
 
-  name       = "runai-cluster"
-  repository = "https://runai.jfrog.io/artifactory/cp-charts-prod"
-  chart      = "runai-cluster"
+  name       = "cluster-installer"
+  repository = "https://runai.jfrog.io/artifactory/run-ai-charts"
+  chart      = "cluster-installer"
   version    = var.runai_version
   namespace  = kubernetes_namespace.runai[0].metadata[0].name
 
   wait    = true
-  timeout = 600 # 10 minutes
+  timeout = 900 # 15 minutes (increased for cluster-installer)
 
   # ==========================================================================
   # Control Plane Connection
@@ -124,6 +125,11 @@ resource "helm_release" "runai_cluster" {
   set_sensitive {
     name  = "cluster.token"
     value = var.runai_cluster_token
+  }
+
+  set {
+    name  = "cluster.name"
+    value = var.runai_cluster_name
   }
 
   set {
@@ -150,7 +156,7 @@ resource "helm_release" "runai_cluster" {
     value = "false"
   }
 
-  # Prometheus - deployed separately
+  # Prometheus - deployed separately via kube-prometheus-stack
   set {
     name  = "prometheus.enabled"
     value = "false"
@@ -167,12 +173,12 @@ resource "helm_release" "runai_cluster" {
 
   set {
     name  = "prometheus.prometheusServiceName"
-    value = "prometheus-kube-prometheus-prometheus"
+    value = "kube-prometheus-stack-prometheus"
   }
 
   set {
     name  = "prometheus.prometheusServiceNamespace"
-    value = "monitoring"
+    value = "prometheus"
   }
 
   # ==========================================================================
@@ -185,14 +191,32 @@ resource "helm_release" "runai_cluster" {
   }
 
   set {
+    name  = "ingress.ingressClassName"
+    value = "nginx"
+  }
+
+  set {
+    name  = "ingress.host"
+    value = var.runai_cluster_url
+  }
+
+  set {
     name  = "ingress.tlsSecretName"
     value = kubernetes_secret.runai_tls[0].metadata[0].name
   }
+
+  # ==========================================================================
+  # All dependencies must be ready before Run:AI installation
+  # ==========================================================================
 
   depends_on = [
     kubernetes_namespace.runai,
     kubernetes_secret.runai_tls,
     helm_release.gpu_operator,
-    helm_release.ingress_nginx
+    helm_release.ingress_nginx,
+    helm_release.prometheus_stack,
+    helm_release.prometheus_adapter,
+    helm_release.lws_operator,
+    helm_release.knative_operator
   ]
 }

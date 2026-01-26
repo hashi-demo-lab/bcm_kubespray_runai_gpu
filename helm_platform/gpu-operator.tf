@@ -1,6 +1,7 @@
 # NVIDIA GPU Operator Configuration
 # Feature: Run:AI Platform Deployment
-# Spec: /workspace/specs/002-runai-deployment/plan.md
+# Spec: cm-kubernetes-setup.conf - NVIDIA GPU Operator
+# Version aligned with BCM configuration
 
 # =============================================================================
 # NVIDIA GPU Operator
@@ -36,93 +37,78 @@ resource "helm_release" "gpu_operator" {
   timeout = 900 # 15 minutes
 
   # ==========================================================================
-  # Driver Configuration
+  # Configuration aligned with cm-kubernetes-setup.conf
   # ==========================================================================
 
-  set {
-    name  = "driver.enabled"
-    value = tostring(var.gpu_driver_enabled)
-  }
+  values = [<<-EOT
+    # Driver Configuration
+    # DGX systems have drivers pre-installed, set to false for DGX
+    # Set to true for non-DGX systems that need driver installation
+    driver:
+      enabled: ${var.gpu_driver_enabled}
+      version: "${var.gpu_driver_version}"
+      rdma:
+        enabled: false
 
-  set {
-    name  = "driver.version"
-    value = var.gpu_driver_version
-  }
+    # Container Toolkit
+    # DGX systems have toolkit pre-installed, set to false for DGX
+    toolkit:
+      enabled: ${var.gpu_toolkit_enabled}
 
-  # ==========================================================================
-  # NVIDIA Container Toolkit
-  # ==========================================================================
+    # Container Device Interface (CDI)
+    cdi:
+      enabled: true
+      default: false
 
-  set {
-    name  = "toolkit.enabled"
-    value = "true"
-  }
+    # DCGM (standalone) - disabled, use dcgmExporter instead
+    dcgm:
+      enabled: false
 
-  # ==========================================================================
-  # Container Device Interface (CDI)
-  # Recommended for newer Kubernetes setups
-  # ==========================================================================
+    # DCGM Exporter for GPU Metrics
+    dcgmExporter:
+      enabled: true
+      serviceMonitor:
+        enabled: ${var.enable_prometheus}
 
-  set {
-    name  = "cdi.enabled"
-    value = "true"
-  }
+    # Node Feature Discovery
+    nfd:
+      enabled: true
 
-  set {
-    name  = "cdi.default"
-    value = "true"
-  }
+    # Device Plugin
+    devicePlugin:
+      enabled: true
+      env:
+        - name: DEVICE_LIST_STRATEGY
+          value: volume-mounts
 
-  # ==========================================================================
-  # DCGM Exporter for GPU Metrics
-  # ==========================================================================
+    # MIG Configuration
+    mig:
+      strategy: single
 
-  set {
-    name  = "dcgmExporter.enabled"
-    value = "true"
-  }
+    # MIG Manager
+    migManager:
+      enabled: true
 
-  set {
-    name  = "dcgmExporter.serviceMonitor.enabled"
-    value = "false"
-  }
+    # GPU Feature Discovery
+    gfd:
+      enabled: true
 
-  # ==========================================================================
-  # Node Feature Discovery
-  # Auto-labels GPU nodes
-  # ==========================================================================
+    # Kata Manager (disabled)
+    kataManager:
+      enabled: false
 
-  set {
-    name  = "nfd.enabled"
-    value = "true"
-  }
+    # Sandbox Workloads (disabled)
+    sandboxWorkloads:
+      enabled: false
 
-  # ==========================================================================
-  # Device Plugin
-  # ==========================================================================
-
-  set {
-    name  = "devicePlugin.enabled"
-    value = "true"
-  }
-
-  # ==========================================================================
-  # MIG Configuration (Multi-Instance GPU)
-  # ==========================================================================
-
-  set {
-    name  = "mig.strategy"
-    value = "single"
-  }
-
-  # ==========================================================================
-  # GFD (GPU Feature Discovery)
-  # ==========================================================================
-
-  set {
-    name  = "gfd.enabled"
-    value = "true"
-  }
+    # Validator configuration
+    validator:
+      driver:
+        env:
+          - name: DISABLE_DEV_CHAR_SYMLINK_CREATION
+            value: "true"
+  EOT
+  ]
 
   depends_on = [
     kubernetes_namespace.gpu_operator

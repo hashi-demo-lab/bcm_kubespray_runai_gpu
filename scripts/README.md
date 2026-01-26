@@ -1,11 +1,108 @@
-# BCM User Creation Script
+# BCM Kubernetes Deployment Scripts
 
 ## Overview
 
-This directory contains the pre-deployment script required to create the `ansiblebcm` user on BCM-managed nodes before running Terraform.
+This directory contains scripts for deploying and managing BCM-based Kubernetes clusters with GPU support.
 
-**Why is this needed?**
-The BCM Terraform provider (hashi-demo-lab/bcm) does not support user management resources (`bcm_cmuser_group`, `bcm_cmuser_user`). Therefore, the user must be created manually or via this script before Terraform deployment.
+## Script Categories
+
+### User Management Scripts
+
+| Script | Description |
+|--------|-------------|
+| `create-user.sh` | Creates the `ansiblebcm` user on BCM-managed nodes |
+| `deploy-kubespray.sh` | Deploys Kubernetes via Kubespray |
+| `fetch-kubeconfig.sh` | Extracts kubeconfig from the cluster |
+
+### GPU Operator Scripts
+
+| Script | Description |
+|--------|-------------|
+| `check-gpu-operator-prereqs.sh` | Validates GPU node prerequisites |
+| `relocate-containerd.sh` | Moves containerd storage to larger partition |
+| `setup-helm-nfs.sh` | Configures Helm for NFS home directories |
+| `install-gpu-operator.sh` | Full GPU Operator installation with pre-checks |
+
+---
+
+## GPU Operator Scripts
+
+### check-gpu-operator-prereqs.sh
+
+Validates that GPU nodes meet all requirements before GPU Operator installation.
+
+**Checks performed:**
+- SSH connectivity to all GPU nodes
+- NVIDIA driver presence (for determining driver.enabled setting)
+- Containerd storage space (minimum 10GB)
+- Kernel headers availability
+- NFS home directory detection (Helm compatibility)
+- KUBECONFIG access
+
+**Usage:**
+```bash
+# Copy to control plane and run
+scp scripts/check-gpu-operator-prereqs.sh ibm@cpu-03:~/
+ssh ibm@cpu-03 "chmod +x ~/check-gpu-operator-prereqs.sh && ~/check-gpu-operator-prereqs.sh"
+```
+
+### relocate-containerd.sh
+
+Moves containerd storage from `/var/lib/containerd` to a larger partition.
+
+**Why needed:** DGX nodes often have small `/var` partitions (~6GB) insufficient for NVIDIA driver images (~3GB).
+
+**Usage:**
+```bash
+./relocate-containerd.sh <node> <target-partition>
+./relocate-containerd.sh dgx-05 /local
+./relocate-containerd.sh dgx-06 /local
+```
+
+**What it does:**
+1. Stops containerd
+2. Creates target directory
+3. Syncs existing data
+4. Creates symlink
+5. Restarts containerd
+6. Cleans up old data
+
+### setup-helm-nfs.sh
+
+Configures Helm environment variables for NFS-mounted home directories.
+
+**Why needed:** Helm uses file locking which fails on NFS filesystems.
+
+**Usage:**
+```bash
+source ./setup-helm-nfs.sh
+```
+
+**Environment variables set:**
+```bash
+export HELM_CACHE_HOME=/tmp/helm-cache
+export HELM_CONFIG_HOME=/tmp/helm-config
+export HELM_DATA_HOME=/tmp/helm-data
+```
+
+### install-gpu-operator.sh
+
+Full GPU Operator installation with integrated prerequisite checks.
+
+**Usage:**
+```bash
+./install-gpu-operator.sh [--skip-prereqs] [--driver-enabled true|false]
+```
+
+---
+
+## User Management Scripts
+
+### create-user.sh
+
+Creates the `ansiblebcm` user on BCM-managed nodes.
+
+**Note:** This is typically handled automatically by Terraform. Use this script only for manual deployments.
 
 ## Prerequisites
 
