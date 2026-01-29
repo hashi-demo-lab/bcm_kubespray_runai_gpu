@@ -1,16 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)",
-      "Bash(pwd:*)",
-      "Bash(cd:*)",
-      "Bash(echo:*)",
-      "Bash(cut:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(wc:*)"
-    ],
-    "ask": [
       "Bash(git fetch:*)",
       "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
@@ -32,6 +22,7 @@
       "Bash(pre-commit run:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
+      "Bash(ls:*)",
       "mcp__terraform__create_workspace",
       "mcp__terraform__create_run",
       "mcp__terraform__get_workspace_details",
@@ -52,6 +43,7 @@
       "Bash(cat:*)",
       "Bash(env)",
       "Bash(git log:*)",
+      "Bash(echo:*)",
       "Skill(github-speckit-tester)",
       "Skill(terraform-style-guide)",
       "Skill(terraform-test)",
@@ -94,10 +86,10 @@
       "mcp__terraform__create_workspace_variable"
     ]
   },
-  "enableAllProjectMcpServers": false,
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
+    "aws-knowledge-mcp-server",
     "terraform"
   ],
   "disableAllHooks": true
 }
-

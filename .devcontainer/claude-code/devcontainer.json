@@ -25,7 +25,8 @@
         "hashicorp.terraform",
         "Anthropic.claude-code",
         "redhat.vscode-yaml",
-        "HashiCorp.HCL"
+        "HashiCorp.HCL",
+        "redhat.ansible"
       ],
       "settings": {
         "editor.formatOnSave": true,

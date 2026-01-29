@@ -26,8 +26,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Kubespray settings
-KUBESPRAY_VERSION="${KUBESPRAY_VERSION:-v2.24.0}"
-KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.28.6}"
+KUBESPRAY_VERSION="${KUBESPRAY_VERSION:-v2.27.1}"
+KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.31.9}"
+PYTHON_VERSION="${PYTHON_VERSION:-3.11}"
 CNI_PLUGIN="${CNI_PLUGIN:-calico}"
 CLUSTER_NAME="${CLUSTER_NAME:-k8s-cluster}"
 
@@ -86,8 +87,9 @@ Options:
     -h, --help           Show this help message
 
 Environment Variables:
-    KUBESPRAY_VERSION    Kubespray version (default: v2.24.0)
-    KUBERNETES_VERSION   Kubernetes version (default: v1.28.6)
+    KUBESPRAY_VERSION    Kubespray version (default: v2.27.1)
+    KUBERNETES_VERSION   Kubernetes version (default: v1.31.9)
+    PYTHON_VERSION       Python minor version (default: 3.11)
     CNI_PLUGIN           CNI plugin (default: calico)
     CLUSTER_NAME         Cluster name (default: k8s-cluster)
     SSH_USER             SSH user (default: ubuntu)
@@ -164,13 +166,14 @@ validate_prerequisites() {
 
     local errors=0
 
-    # Check Python 3.9
-    if ! command -v python3.9 &>/dev/null; then
-        log_error "Python 3.9 is required but not found"
-        log_info "Install with: brew install python@3.9 (macOS) or apt install python3.9 (Ubuntu)"
+    # Check Python
+    local python_cmd="python${PYTHON_VERSION}"
+    if ! command -v "$python_cmd" &>/dev/null; then
+        log_error "Python ${PYTHON_VERSION} is required but not found"
+        log_info "Install with: brew install python@${PYTHON_VERSION} (macOS) or apt install python${PYTHON_VERSION} (Ubuntu)"
         ((errors++))
     else
-        log_success "Python 3.9 found: $(python3.9 --version)"
+        log_success "Python ${PYTHON_VERSION} found: $($python_cmd --version)"
     fi
 
     # Check git
@@ -297,23 +300,21 @@ validate_ssh_connectivity() {
 # Setup Python Virtual Environment
 # =============================================================================
 setup_venv() {
-    log_info "Setting up Python 3.9 virtual environment..."
+    local python_cmd="python${PYTHON_VERSION}"
+    log_info "Setting up Python ${PYTHON_VERSION} virtual environment..."
 
     if $DRY_RUN; then
         log_info "[DRY-RUN] Would create virtualenv at $VENV_DIR"
         return
     fi
 
-    # Install virtualenv if needed
-    python3.9 -m pip install --user virtualenv --quiet
-
     # Remove old virtualenv
     log_info "Removing old virtualenv if exists..."
     rm -rf "$VENV_DIR"
-    
-    # Create fresh virtualenv with --no-download to avoid network hangs
+
+    # Create fresh venv using built-in venv module
     log_info "Creating new virtualenv (this may take a moment)..."
-    python3.9 -m virtualenv --no-download --clear "$VENV_DIR"
+    "$python_cmd" -m venv "$VENV_DIR"
 
     # Activate and upgrade pip
     log_info "Activating virtualenv..."

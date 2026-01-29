@@ -33,14 +33,24 @@ output "runai_enabled" {
   value       = var.enable_runai
 }
 
-output "runai_cluster_url" {
-  description = "Run:AI cluster access URL"
-  value       = var.enable_runai ? "https://${var.runai_cluster_url}" : null
+output "runai_domain" {
+  description = "Run:AI domain FQDN"
+  value       = var.enable_runai ? var.runai_domain : null
 }
 
 output "runai_control_plane_url" {
-  description = "Run:AI control plane URL"
-  value       = var.enable_runai ? var.runai_control_plane_url : null
+  description = "Run:AI self-hosted control plane URL"
+  value       = var.enable_runai ? "https://${var.runai_domain}" : null
+}
+
+output "runai_backend_namespace" {
+  description = "Kubernetes namespace for Run:AI control plane"
+  value       = var.enable_runai ? kubernetes_namespace.runai_backend[0].metadata[0].name : null
+}
+
+output "runai_backend_deployed" {
+  description = "Whether Run:AI control plane was deployed (requires JFrog token)"
+  value       = var.enable_runai ? length(helm_release.runai_backend) > 0 : false
 }
 
 output "runai_namespace" {
@@ -48,8 +58,8 @@ output "runai_namespace" {
   value       = var.enable_runai ? kubernetes_namespace.runai[0].metadata[0].name : null
 }
 
-output "runai_deployed" {
-  description = "Whether Run:AI Helm release was deployed (requires token)"
+output "runai_cluster_deployed" {
+  description = "Whether Run:AI cluster component was deployed (requires client secret from control plane UI)"
   value       = var.enable_runai ? length(helm_release.runai_cluster) > 0 : false
 }
 

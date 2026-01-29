@@ -1,36 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)",
-      "Bash(pwd:*)",
-      "Bash(cd:*)",
-      "Bash(echo:*)",
-      "Bash(cut:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(wc:*)"
-    ],
-    "ask": [
-      "mcp__terraform__*",
-      "mcp__aws-knowledge-mcp-server__*",
-      "WebFetch",
-      "Bash(cat:*)",
-      "Bash(find:*)",
-      "Bash(sed:*)",
-      "Bash(git:*)",
-      "Bash(terraform:*)",
-      "Bash(aws:*)",
-      "Bash(curl:*)",
-      "Bash(docker:*)",
-      "Bash(pre-commit:*)",
-      "Bash(.specify/scripts/bash/*:*)",
-      "Bash(.specify/scripts/powershell/*:*)"
+      "mcp__terraform",
+      "mcp__terraform__search_modules",
+      "mcp__terraform__*"
     ]
   },
-  "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": [
-    "terraform"
-  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -94,4 +69,3 @@
     ]
   }
 }
-

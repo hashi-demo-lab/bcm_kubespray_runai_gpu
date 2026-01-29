@@ -54,6 +54,75 @@ resource "terraform_data" "wait_for_nodes" {
 }
 
 # =============================================================================
+# Ensure Required Python Version is Installed
+# =============================================================================
+# Kubespray v2.27+ requires Python 3.10+ for Ansible 9.x.
+# This resource installs the required Python version if not already present.
+
+resource "terraform_data" "install_python" {
+  count = var.enable_kubespray_deployment ? 1 : 0
+
+  triggers_replace = [
+    var.python_version,
+    # Force re-run when install logic changes
+    "v1-auto-install"
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      PYTHON_CMD="python${var.python_version}"
+
+      echo "=== Checking for Python ${var.python_version} ==="
+
+      if command -v "$PYTHON_CMD" &>/dev/null; then
+        echo "Python ${var.python_version} already installed: $($PYTHON_CMD --version)"
+        # Verify venv module is available
+        if "$PYTHON_CMD" -m venv --help &>/dev/null; then
+          echo "venv module available"
+          exit 0
+        else
+          echo "venv module missing, will install..."
+        fi
+      else
+        echo "Python ${var.python_version} not found, installing..."
+      fi
+
+      # Detect OS and install
+      if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+          ubuntu|debian)
+            echo "Detected Debian/Ubuntu ($PRETTY_NAME)"
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq software-properties-common
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq "python${var.python_version}" "python${var.python_version}-venv" "python${var.python_version}-dev"
+            ;;
+          rhel|centos|rocky|almalinux)
+            echo "Detected RHEL-family ($PRETTY_NAME)"
+            sudo dnf install -y "python${var.python_version}" "python${var.python_version}-devel" || \
+            sudo yum install -y "python${var.python_version}" "python${var.python_version}-devel"
+            ;;
+          *)
+            echo "ERROR: Unsupported OS '$ID'. Install Python ${var.python_version} manually."
+            exit 1
+            ;;
+        esac
+      else
+        echo "ERROR: Cannot detect OS (no /etc/os-release). Install Python ${var.python_version} manually."
+        exit 1
+      fi
+
+      # Verify installation
+      "$PYTHON_CMD" --version || { echo "ERROR: Python ${var.python_version} installation failed"; exit 1; }
+      echo "=== Python ${var.python_version} installed successfully ==="
+    EOT
+  }
+}
+
+# =============================================================================
 # Clone and Setup Kubespray
 # =============================================================================
 
@@ -63,26 +132,29 @@ resource "terraform_data" "clone_kubespray" {
   triggers_replace = [
     var.kubespray_version,
     var.kubernetes_version,
+    var.python_version,
     # Force re-run when script logic changes
-    "v11-use-builtin-venv"
+    "v12-configurable-python"
   ]
 
   # Clone Kubespray repository on the agent
   provisioner "local-exec" {
     command = <<-EOT
       set -e
-      echo "=== Setting up Python 3.9 virtual environment ==="
+      PYTHON_CMD="python${var.python_version}"
 
-      # Verify Python 3.9 is available
-      python3.9 --version || { echo "ERROR: Python 3.9 not found"; exit 1; }
+      echo "=== Setting up Python ${var.python_version} virtual environment ==="
+
+      # Verify Python is available (should be installed by install_python resource)
+      $PYTHON_CMD --version || { echo "ERROR: Python ${var.python_version} not found. Run terraform apply again or install manually."; exit 1; }
 
       # Use built-in venv module instead of virtualenv (avoids extra install and memory usage)
       echo "Removing old virtualenv if exists..."
       rm -rf /tmp/kubespray-venv
-      
-      echo "Creating virtualenv with python3.9 -m venv..."
-      python3.9 -m venv /tmp/kubespray-venv
-      
+
+      echo "Creating virtualenv with $PYTHON_CMD -m venv..."
+      $PYTHON_CMD -m venv /tmp/kubespray-venv
+
       echo "Activating virtualenv..."
       . /tmp/kubespray-venv/bin/activate
 
@@ -95,8 +167,8 @@ resource "terraform_data" "clone_kubespray" {
       rm -rf /tmp/kubespray
       git clone --depth 1 --branch ${var.kubespray_version} https://github.com/kubernetes-sigs/kubespray.git /tmp/kubespray
 
-      # Check Python version (should be 3.9)
-      PYTHON_VERSION=$(python3.9 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+      # Check Python version
+      PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
       echo "Python version: $PYTHON_VERSION"
 
       # Install Kubespray requirements into virtualenv (no cache to save memory)
@@ -114,6 +186,10 @@ resource "terraform_data" "clone_kubespray" {
       echo "=== Kubespray clone complete ==="
     EOT
   }
+
+  depends_on = [
+    terraform_data.install_python
+  ]
 }
 
 # =============================================================================

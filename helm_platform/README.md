@@ -1,44 +1,83 @@
 # Helm Platform Module
 
-This Terraform module deploys the complete Run:AI platform with all required dependencies on a Kubernetes cluster.
+This Terraform module deploys the complete Run:AI platform (self-hosted) with all required dependencies on a Kubernetes cluster.
 
 ## Overview
 
-The module deploys components in the correct dependency order to support GPU workloads and Run:AI scheduling:
+The module deploys components in the correct dependency order to support GPU workloads and Run:AI scheduling. Run:AI is deployed in **self-hosted mode** with the control plane running locally on the cluster.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     Helm Platform Module                             │
+│                     Helm Platform Module                           │
 ├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
+│                                                                    │
 │   ┌─────────────────┐    ┌─────────────────┐    ┌────────────────┐ │
 │   │  Storage Class  │───▶│ NGINX Ingress   │───▶│  GPU Operator  │ │
 │   │  (local-path)   │    │   Controller    │    │   (v25.3.3)    │ │
 │   └─────────────────┘    └─────────────────┘    └────────────────┘ │
-│                                                        │            │
-│   ┌─────────────────┐    ┌─────────────────┐          │            │
-│   │ Metrics Server  │    │   Prometheus    │◀─────────┘            │
-│   │   (v3.13.0)     │    │ Stack (v77.6.2) │                       │
-│   └─────────────────┘    └─────────────────┘                       │
-│                                  │                                  │
-│   ┌─────────────────┐    ┌───────┴─────────┐                       │
-│   │ LeaderWorkerSet │    │   Prometheus    │                       │
-│   │ Operator (v0.7) │    │ Adapter (v5.1)  │                       │
-│   └─────────────────┘    └─────────────────┘                       │
-│           │                      │                                  │
-│   ┌───────┴─────────┐            │                                  │
-│   │ Knative Operator│            │                                  │
-│   │    (v1.19.2)    │            │                                  │
-│   └─────────────────┘            │                                  │
-│           │                      │                                  │
-│           └──────────┬───────────┘                                  │
-│                      ▼                                              │
-│              ┌───────────────┐                                      │
-│              │    Run:AI     │                                      │
-│              │  (v2.22.15)   │                                      │
-│              └───────────────┘                                      │
-│                                                                      │
+│                                                        │           │
+│   ┌─────────────────┐    ┌─────────────────┐          │           │
+│   │ Metrics Server  │    │   Prometheus    │◀─────────┘           │
+│   │   (v3.13.0)     │    │ Stack (v77.6.2) │                      │
+│   └─────────────────┘    └─────────────────┘                      │
+│                                  │                                 │
+│   ┌─────────────────┐    ┌───────┴─────────┐                      │
+│   │ LeaderWorkerSet │    │   Prometheus    │                      │
+│   │ Operator (v0.7) │    │ Adapter (v5.1)  │                      │
+│   └─────────────────┘    └─────────────────┘                      │
+│           │                      │                                 │
+│   ┌───────┴─────────┐           │                                 │
+│   │ Knative Operator│           │                                 │
+│   │    (v1.16.0)    │           │                                 │
+│   └─────────────────┘           │                                 │
+│           │                     │                                  │
+│           └─────────┬───────────┘                                  │
+│                     ▼                                              │
+│          ┌────────────────────┐                                    │
+│          │  Run:AI Backend   │  ◀── Phase 1: Control Plane        │
+│          │  (control-plane)  │      Keycloak, PostgreSQL, Redis,  │
+│          │   runai-backend   │      Thanos, Grafana, Backend      │
+│          └────────────────────┘                                    │
+│                     │                                              │
+│                     ▼  (manual: get credentials from UI)           │
+│          ┌────────────────────┐                                    │
+│          │  Run:AI Cluster   │  ◀── Phase 2: Cluster Component   │
+│          │  (runai-cluster)  │      Scheduler, Agent, Metrics     │
+│          │    v2.21          │                                     │
+│          └────────────────────┘                                    │
+│                                                                    │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+## Two-Phase Deployment
+
+Run:AI self-hosted requires a two-phase deployment:
+
+### Phase 1: Deploy Control Plane + Dependencies
+
+```bash
+cd helm_platform
+terraform init
+terraform apply \
+  -var="runai_jfrog_token=<JFROG_TOKEN>" \
+  -var="runai_admin_password=<ADMIN_PASSWORD>"
+```
+
+This deploys all dependencies and the Run:AI control plane backend. Access the UI at `https://<runai_domain>` (default: `bcm-head-01.eth.cluster`).
+
+### Phase 2: Create Cluster in UI + Deploy Cluster Component
+
+1. Log into the Run:AI control plane UI with `randy.keener@ibm.com`
+2. Navigate to **Settings > Clusters > + New Cluster**
+3. Copy the **client secret** and **cluster UID**
+4. Re-run Terraform with the credentials:
+
+```bash
+terraform apply \
+  -var="runai_jfrog_token=<JFROG_TOKEN>" \
+  -var="runai_admin_password=<ADMIN_PASSWORD>" \
+  -var="runai_client_secret=<CLIENT_SECRET>" \
+  -var="runai_cluster_uid=<CLUSTER_UID>"
 ```
 
 ## Components
@@ -69,13 +108,14 @@ The module deploys components in the correct dependency order to support GPU wor
 | Component | File | Version | Description |
 |-----------|------|---------|-------------|
 | **LeaderWorkerSet Operator** | `lws.tf` | v0.7.0 | Distributed training job orchestration |
-| **Knative Operator** | `knative.tf` | v1.19.2 | Serverless inference workloads |
+| **Knative Operator** | `knative.tf` | v1.16.0 | Serverless inference workloads |
 
-### Run:AI Platform
+### Run:AI Platform (Self-Hosted)
 
-| Component | File | Version | Description |
-|-----------|------|---------|-------------|
-| **Run:AI Cluster** | `runai.tf` | v2.22.15 | AI workload scheduler and resource management |
+| Component | File | Chart | Namespace | Description |
+|-----------|------|-------|-----------|-------------|
+| **Control Plane** | `runai-backend.tf` | `control-plane` | `runai-backend` | Backend services (Keycloak, PostgreSQL, Redis, Thanos) |
+| **Cluster Component** | `runai.tf` | `runai-cluster` | `runai` | AI workload scheduler and resource management |
 
 ## Usage
 
@@ -83,7 +123,7 @@ The module deploys components in the correct dependency order to support GPU wor
 
 1. Kubernetes cluster deployed via Kubespray (root module)
 2. GPU nodes with sufficient containerd storage (see [GPU_OPERATOR_PREREQUISITES.md](../docs/GPU_OPERATOR_PREREQUISITES.md))
-3. Run:AI credentials (token and cluster UID from Run:AI console)
+3. NVIDIA JFrog token for Run:AI registry access
 
 ### Basic Configuration
 
@@ -101,10 +141,13 @@ module "helm_platform" {
   cluster_name     = "bcm-k8s-cluster"
   control_plane_ip = "10.184.162.103"
 
-  # Run:AI configuration (obtain from Run:AI console)
-  runai_cluster_token = var.runai_cluster_token  # Sensitive
-  runai_cluster_uid   = var.runai_cluster_uid
-  runai_cluster_url   = "runai.example.com"
+  # Run:AI self-hosted configuration
+  runai_jfrog_token    = var.runai_jfrog_token     # From NVIDIA (sensitive)
+  runai_admin_password = var.runai_admin_password   # Control plane login (sensitive)
+
+  # Phase 2 only (after creating cluster in UI)
+  runai_client_secret = var.runai_client_secret     # From control plane UI (sensitive)
+  runai_cluster_uid   = var.runai_cluster_uid       # From control plane UI
 }
 ```
 
@@ -154,17 +197,20 @@ enable_grafana            = true
 | `kubernetes_client_certificate` | string | Yes | Base64-encoded client certificate |
 | `kubernetes_client_key` | string | Yes | Base64-encoded client private key |
 
-### Run:AI Configuration
+### Run:AI Configuration (Self-Hosted)
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `enable_runai` | bool | `true` | Enable Run:AI deployment |
-| `runai_version` | string | `2.22.15` | Run:AI cluster-installer version |
-| `runai_cluster_name` | string | `bcm-k8s-cluster` | Cluster name in Run:AI console |
-| `runai_cluster_url` | string | `runai.hashicorp.local` | FQDN for cluster access |
-| `runai_control_plane_url` | string | `https://app.run.ai` | Run:AI SaaS URL |
-| `runai_cluster_token` | string | `""` | Cluster authentication token (sensitive) |
-| `runai_cluster_uid` | string | `""` | Cluster UID from console |
+| `runai_jfrog_username` | string | `self-hosted-image-puller-prod` | JFrog username for registry access |
+| `runai_jfrog_token` | string | `""` | JFrog token from NVIDIA (sensitive) |
+| `runai_domain` | string | `bcm-head-01.eth.cluster` | FQDN for control plane and cluster access |
+| `runai_admin_email` | string | `randy.keener@ibm.com` | Admin email for control plane login |
+| `runai_admin_password` | string | `""` | Admin password for control plane (sensitive) |
+| `runai_backend_version` | string | `2.21` | Control plane chart version |
+| `runai_cluster_version` | string | `2.21` | Cluster component chart version |
+| `runai_client_secret` | string | `""` | Client secret from control plane UI (sensitive) |
+| `runai_cluster_uid` | string | `""` | Cluster UID from control plane UI |
 
 ### GPU Operator Configuration
 
@@ -196,29 +242,23 @@ enable_grafana            = true
 | `enable_lws_operator` | bool | `true` | Enable LeaderWorkerSet Operator |
 | `lws_operator_version` | string | `v0.7.0` | LWS Operator version |
 | `enable_knative_operator` | bool | `true` | Enable Knative Operator |
-| `knative_operator_version` | string | `v1.19.2` | Knative Operator version |
+| `knative_operator_version` | string | `v1.16.0` | Knative Operator version (Run:AI v2.21 requires Serving 1.11-1.16) |
 | `enable_knative_serving` | bool | `false` | Deploy Knative Serving |
-
-## Outputs
-
-| Output | Description |
-|--------|-------------|
-| `prometheus_namespace` | Prometheus namespace name |
-| `prometheus_service_name` | Prometheus service for Run:AI integration |
 
 ## Version Alignment
 
-Component versions are aligned with BCM `cm-kubernetes-setup.conf` configuration:
+Component versions are aligned with Run:AI v2.21 system requirements and BCM `cm-kubernetes-setup.conf` configuration:
 
-| Component | cm-kubernetes-setup.conf | This Module |
-|-----------|-------------------------|-------------|
-| GPU Operator | v25.3.3 | v25.3.3 ✅ |
-| Prometheus Stack | v77.6.2 | v77.6.2 ✅ |
-| Prometheus Adapter | v5.1.0 | v5.1.0 ✅ |
-| Metrics Server | v3.13.0 | v3.13.0 ✅ |
-| LeaderWorkerSet | v0.7.0 | v0.7.0 ✅ |
-| Knative Operator | v1.19.2 | v1.19.2 ✅ |
-| Run:AI | v2.22.15 | v2.22.15 ✅ |
+| Component | cm-kubernetes-setup.conf | This Module | Notes |
+|-----------|-------------------------|-------------|-------|
+| GPU Operator | v25.3.3 | v25.3.3 | v2.21 supports 24.9-25.3 |
+| Prometheus Stack | v77.6.2 | v77.6.2 | |
+| Prometheus Adapter | v5.1.0 | v5.1.0 | |
+| Metrics Server | v3.13.0 | v3.13.0 | |
+| LeaderWorkerSet | v0.7.0 | v0.7.0 | |
+| Knative Operator | v1.19.2 | v1.16.0 | Downgraded: v2.21 requires Serving 1.11-1.16 |
+| Run:AI Backend | 2.22.x | 2.21 | Using v2.21 per project requirements |
+| Run:AI Cluster | v2.22.15 | 2.21 | Using v2.21 per project requirements |
 
 ## Troubleshooting
 
@@ -246,17 +286,33 @@ kubectl port-forward -n prometheus svc/kube-prometheus-stack-prometheus 9090:909
 # Visit http://localhost:9090/targets
 ```
 
-### Run:AI Connection Issues
+### Run:AI Backend Not Starting
 
 ```bash
-# Check Run:AI pods
+# Check backend pods
+kubectl get pods -n runai-backend
+
+# Check Keycloak status
+kubectl logs -n runai-backend -l app=keycloakx
+
+# Check PostgreSQL
+kubectl logs -n runai-backend -l app.kubernetes.io/name=postgresql
+
+# Verify ingress
+kubectl get ingress -n runai-backend
+```
+
+### Run:AI Cluster Connection Issues
+
+```bash
+# Check cluster component pods
 kubectl get pods -n runai
 
-# Verify cluster token is set
-kubectl get secret -n runai
+# Verify registry credentials
+kubectl get secret runai-reg-creds -n runai -o jsonpath='{.type}'
 
-# Check cluster connection
-kubectl logs -n runai -l app=runai-cluster-controller
+# Check cluster agent logs
+kubectl logs -n runai -l app=runai-agent
 ```
 
 ## Related Documentation
@@ -264,3 +320,4 @@ kubectl logs -n runai -l app=runai-cluster-controller
 - [GPU Operator Prerequisites](../docs/GPU_OPERATOR_PREREQUISITES.md)
 - [Scripts README](../scripts/README.md)
 - [BCM cm-kubernetes-setup.conf](../cm-kubernetes-setup.conf)
+- [Run:AI Self-Hosted Install Docs](https://run-ai-docs.nvidia.com/self-hosted/2.21/getting-started/installation/install-using-helm)

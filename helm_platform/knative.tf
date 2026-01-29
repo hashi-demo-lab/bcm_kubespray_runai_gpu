@@ -1,7 +1,7 @@
 # Knative Operator Configuration
 # Feature: Run:AI Platform Deployment
 # Spec: cm-kubernetes-setup.conf - Knative Operator
-# Dependency: Required for Run:AI SaaS serverless inference workloads
+# Dependency: Required for Run:AI self-hosted serverless inference workloads
 
 # =============================================================================
 # Knative Operator Namespace

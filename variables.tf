@@ -183,9 +183,9 @@ variable "cluster_name" {
 }
 
 variable "kubernetes_version" {
-  description = "Target Kubernetes version for deployment. Must match Kubespray version compatibility - v2.24.0 supports up to v1.28.x (FR-009)"
+  description = "Target Kubernetes version for deployment. Must match Kubespray version compatibility (FR-009). Run:AI v2.21 requires K8s 1.30-1.32."
   type        = string
-  default     = "v1.28.6"
+  default     = "v1.31.9"
 
   validation {
     condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+$", var.kubernetes_version))
@@ -322,21 +322,21 @@ variable "kubespray_playbook_path" {
 variable "kubespray_version" {
   description = <<-EOT
     Kubespray release version or Git tag (FR-011).
-    
+
     Version compatibility matrix:
-    - v2.24.0: K8s 1.27.x-1.28.x, Python 3.9+
-    - v2.25.0: K8s 1.28.x-1.29.x, Python 3.10+
-    - v2.26.0: K8s 1.29.x-1.30.x, Python 3.10+
-    - v2.27.0+: K8s 1.30.x-1.32.x, Python 3.11+
-    
-    Update kubernetes_version accordingly when changing this.
+    - v2.24.0: K8s 1.27.x-1.28.x, Python 3.9+,  Ansible 8.x
+    - v2.25.0: K8s 1.28.x-1.29.x, Python 3.10+, Ansible 9.x
+    - v2.26.0: K8s 1.29.x-1.30.x, Python 3.10+, Ansible 9.x
+    - v2.27.1: K8s 1.30.x-1.31.x, Python 3.10+, Ansible 9.13.0
+
+    Update kubernetes_version and python_version accordingly when changing this.
   EOT
   type        = string
-  default     = "v2.24.0"
+  default     = "v2.27.1"
 
   validation {
     condition     = can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+$", var.kubespray_version))
-    error_message = "Kubespray version must be in format vX.Y.Z (e.g., v2.24.0)."
+    error_message = "Kubespray version must be in format vX.Y.Z (e.g., v2.27.1)."
   }
 }
 
@@ -366,6 +366,25 @@ variable "ansible_version" {
   description = "Ansible version to install on control plane for Kubespray execution."
   type        = string
   default     = "8.7.0"
+}
+
+variable "python_version" {
+  description = <<-EOT
+    Python minor version for Kubespray virtual environment.
+    Must satisfy Kubespray's Ansible dependency:
+    - Kubespray v2.24.0 (Ansible 8.x): Python 3.9+
+    - Kubespray v2.25.0+ (Ansible 9.x): Python 3.10+
+
+    If not already installed, Terraform will attempt to install it
+    via the system package manager (apt/dnf).
+  EOT
+  type        = string
+  default     = "3.11"
+
+  validation {
+    condition     = can(regex("^3\\.(9|1[0-9])$", var.python_version))
+    error_message = "Python version must be 3.9 or higher (e.g., 3.11)."
+  }
 }
 
 # =============================================================================

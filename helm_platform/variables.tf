@@ -52,7 +52,8 @@ variable "worker_ips" {
 }
 
 # =============================================================================
-# Run:AI Configuration
+# Run:AI Configuration (Self-Hosted)
+# Docs: https://run-ai-docs.nvidia.com/self-hosted/2.21/getting-started/installation/install-using-helm
 # =============================================================================
 
 variable "enable_runai" {
@@ -61,39 +62,66 @@ variable "enable_runai" {
   default     = true
 }
 
-variable "runai_version" {
-  description = "Run:AI Helm chart version (cluster-installer)"
+# --- JFrog Registry Credentials ---
+# Required to access Run:AI container registry and Helm charts
+
+variable "runai_jfrog_username" {
+  description = "JFrog username for Run:AI registry access (default: self-hosted-image-puller-prod per NVIDIA docs)"
   type        = string
-  default     = "2.22.15"
+  default     = "self-hosted-image-puller-prod"
 }
 
-variable "runai_cluster_name" {
-  description = "Run:AI cluster name for registration in console"
+variable "runai_jfrog_token" {
+  description = "JFrog token for Run:AI registry access (from NVIDIA)"
   type        = string
-  default     = "bcm-k8s-cluster"
+  sensitive   = true
+  default     = ""
 }
 
-variable "runai_cluster_url" {
-  description = "FQDN for Run:AI cluster access (e.g., runai.example.com)"
+# --- Control Plane (Backend) ---
+
+variable "runai_backend_version" {
+  description = "Run:AI control-plane Helm chart version"
   type        = string
-  default     = "runai.hashicorp.local"
+  default     = "2.21"
 }
 
-variable "runai_control_plane_url" {
-  description = "Run:AI control plane URL (SaaS: https://app.run.ai)"
+variable "runai_domain" {
+  description = "FQDN for Run:AI control plane and cluster access"
   type        = string
-  default     = "https://app.run.ai"
+  default     = "bcm-head-01.eth.cluster"
 }
 
-variable "runai_cluster_token" {
-  description = "Run:AI cluster authentication token (from Run:AI console)"
+variable "runai_admin_email" {
+  description = "Admin email for Run:AI control plane initial login"
+  type        = string
+  default     = "randy.keener@ibm.com"
+}
+
+variable "runai_admin_password" {
+  description = "Admin password for Run:AI control plane (min 8 chars, requires 1 digit, lowercase, uppercase, special char)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+# --- Cluster Component ---
+
+variable "runai_cluster_version" {
+  description = "Run:AI cluster Helm chart version"
+  type        = string
+  default     = "2.21"
+}
+
+variable "runai_client_secret" {
+  description = "Run:AI client secret (obtained from self-hosted control plane UI after creating a cluster)"
   type        = string
   sensitive   = true
   default     = ""
 }
 
 variable "runai_cluster_uid" {
-  description = "Run:AI cluster UID (from Run:AI console)"
+  description = "Run:AI cluster UID (obtained from self-hosted control plane UI after creating a cluster)"
   type        = string
   default     = ""
 }
@@ -272,9 +300,9 @@ variable "enable_knative_operator" {
 }
 
 variable "knative_operator_version" {
-  description = "Knative operator Helm chart version"
+  description = "Knative operator Helm chart version (Run:AI v2.21 supports Knative Serving 1.11-1.16)"
   type        = string
-  default     = "v1.19.2"
+  default     = "v1.16.0"
 }
 
 variable "enable_knative_serving" {

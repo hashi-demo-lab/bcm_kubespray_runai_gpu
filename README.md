@@ -20,7 +20,7 @@ This Terraform project automates the deployment of a Kubernetes cluster on BCM-m
 - CNI plugin support (Calico, Flannel, Cilium)
 - **GPU Node Preparation** with prerequisite validation and labeling
 - **NVIDIA GPU Operator** v25.3.3 with configurable driver installation
-- **Complete Run:AI Platform** with all dependencies (Prometheus, Knative, LeaderWorkerSet)
+- **Complete Run:AI Platform (Self-Hosted)** with control plane and all dependencies
 - HCP Terraform remote state management
 - Security-first design with auto-generated SSH key authentication
 
@@ -214,9 +214,10 @@ The following ports must be accessible between cluster nodes:
 │   ├── prometheus-adapter.tf  # Prometheus Adapter (v5.1.0)
 │   ├── metrics-server.tf      # Kubernetes Metrics Server (v3.13.0)
 │   ├── lws.tf                 # LeaderWorkerSet Operator (v0.7.0)
-│   ├── knative.tf             # Knative Operator (v1.19.2)
+│   ├── knative.tf             # Knative Operator (v1.16.0)
 │   ├── ingress.tf             # NGINX Ingress Controller
-│   ├── runai.tf               # Run:AI Cluster (v2.22.15)
+│   ├── runai-backend.tf       # Run:AI Control Plane (self-hosted)
+│   ├── runai.tf               # Run:AI Cluster Component (v2.21)
 │   └── storage.tf             # local-path-provisioner
 ├── scripts/                   # Helper scripts (see scripts/README.md)
 │   ├── check-gpu-operator-prereqs.sh
@@ -265,16 +266,24 @@ The `helm_platform/` module deploys the complete Run:AI platform with all depend
 ### Deployment Order
 
 ```
-Kubespray → GPU Node Prep → Prometheus Stack → Prometheus Adapter
+Kubespray → GPU Node Prep → Storage → Ingress → GPU Operator
+                                                      ↓
+                              Prometheus Stack → Prometheus Adapter
                                       ↓
                               Metrics Server
                                       ↓
-            LWS Operator → Knative Operator → Ingress → Run:AI
+            LWS Operator → Knative Operator
+                                      ↓
+                           Run:AI Backend (Phase 1: control plane)
+                                      ↓
+                        [Manual: get credentials from UI]
+                                      ↓
+                           Run:AI Cluster (Phase 2: cluster component)
 ```
 
-### Run:AI Prerequisites
+### Run:AI Self-Hosted Prerequisites
 
-Run:AI SaaS requires the following dependencies (all deployed automatically):
+Run:AI self-hosted requires the following dependencies (all deployed automatically) plus JFrog registry credentials from NVIDIA:
 
 | Component | Version | Purpose |
 |-----------|---------|---------|
@@ -283,8 +292,9 @@ Run:AI SaaS requires the following dependencies (all deployed automatically):
 | Prometheus Adapter | v5.1.0 | Custom metrics API |
 | Metrics Server | v3.13.0 | Resource metrics |
 | LeaderWorkerSet | v0.7.0 | Distributed training |
-| Knative Operator | v1.19.2 | Serverless inference |
-| NGINX Ingress | - | External access |
+| Knative Operator | v1.16.0 | Serverless inference |
+| NGINX Ingress | v4.9.0 | External access |
+| Run:AI Backend | 2.21.x | Self-hosted control plane |
 
 ## Security Considerations
 
@@ -373,7 +383,7 @@ Run:AI SaaS requires the following dependencies (all deployed automatically):
 | <a name="input_worker_nodes"></a> [worker_nodes](#input_worker_nodes)                                              | List of BCM node hostnames for workers                          | `list(string)` | `[]`                        |    no    |
 | <a name="input_etcd_nodes"></a> [etcd_nodes](#input_etcd_nodes)                                                    | List of BCM node hostnames for etcd (defaults to control plane) | `list(string)` | `[]`                        |    no    |
 | <a name="input_cluster_name"></a> [cluster_name](#input_cluster_name)                                              | Kubernetes cluster name identifier                              | `string`       | `"vsphere-k8s-cluster"`     |    no    |
-| <a name="input_kubernetes_version"></a> [kubernetes_version](#input_kubernetes_version)                            | Target Kubernetes version                                       | `string`       | `"v1.28.6"`                 |    no    |
+| <a name="input_kubernetes_version"></a> [kubernetes_version](#input_kubernetes_version)                            | Target Kubernetes version (Run:AI v2.21 requires 1.30-1.32)    | `string`       | `"v1.31.9"`                 |    no    |
 | <a name="input_cni_plugin"></a> [cni_plugin](#input_cni_plugin)                                                    | CNI plugin for pod networking                                   | `string`       | `"calico"`                  |    no    |
 | <a name="input_ssh_user"></a> [ssh_user](#input_ssh_user)                                                          | SSH username for node access                                    | `string`       | `"ubuntu"`                  |    no    |
 | <a name="input_ssh_private_key"></a> [ssh_private_key](#input_ssh_private_key)                                     | SSH private key (uses auto-generated if null)                   | `string`       | `null`                      |    no    |
@@ -382,7 +392,7 @@ Run:AI SaaS requires the following dependencies (all deployed automatically):
 | <a name="input_node_password"></a> [node_password](#input_node_password)                                           | Password for the user account                                   | `string`       | `null`                      |    no    |
 | <a name="input_node_user_full_name"></a> [node_user_full_name](#input_node_user_full_name)                         | Full name for the user account                                  | `string`       | `"Ansible Service Account"` |    no    |
 | <a name="input_node_user_ssh_public_keys"></a> [node_user_ssh_public_keys](#input_node_user_ssh_public_keys)       | Additional SSH public keys                                      | `list(string)` | `[]`                        |    no    |
-| <a name="input_kubespray_version"></a> [kubespray_version](#input_kubespray_version)                               | Kubespray release version                                       | `string`       | `"v2.24.0"`                 |    no    |
+| <a name="input_kubespray_version"></a> [kubespray_version](#input_kubespray_version)                               | Kubespray release version                                       | `string`       | `"v2.27.1"`                 |    no    |
 | <a name="input_enable_kubespray_deployment"></a> [enable_kubespray_deployment](#input_enable_kubespray_deployment) | Enable Kubespray deployment                                     | `bool`         | `true`                      |    no    |
 
 ## Outputs

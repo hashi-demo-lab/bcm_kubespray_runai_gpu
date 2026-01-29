@@ -36,7 +36,7 @@ node_user_full_name = "Ansible Service Account"   # Full name for the account
 # =============================================================================
 
 cluster_name       = "bcm-k8s-sandbox"
-kubernetes_version = "v1.28.6"
+kubernetes_version = "v1.31.9"
 cni_plugin         = "calico"
 
 # =============================================================================
@@ -55,4 +55,4 @@ ssh_user = "ansible"  # Should match node_username for BCM-provisioned user
 # =============================================================================
 
 kubespray_playbook_path = "./kubespray/cluster.yml"
-kubespray_version       = "v2.24.0"
+kubespray_version       = "v2.27.1"

@@ -1,35 +1,51 @@
 {
-    "chat.promptFilesRecommendations": {
-        "speckit.constitution": true,
-        "speckit.specify": true,
-        "speckit.plan": true,
-        "speckit.tasks": true,
-        "speckit.implement": true
-    },
-    "terminal.integrated.shellIntegration.enabled": true,
-    "chat.agent.maxRequests": 256,
-    "chat.tools.terminal.enableAutoApprove": true,
-    "chat.tools.terminal.blockDetectedFileWrites": "outsideWorkspace",
-    "chat.tools.terminal.autoApprove": {
-        ".specify/scripts/bash/": true,
-        ".specify/scripts/powershell/": true,
-        "/workspace/.specify/scripts/bash/validate-env.sh": true,
-        "bash": true,
-        "pre-commit": true,
-        "git": true,
-        "ls": true,
-        "cd": true,
-        "cat": true,
-        "echo": true,
-        "mkdir": true,
-        "mv": true,
-        "terraform": true,
-        "sed": true,
-        "cut": true,
-        "aws": true,
-        "command": true,
-        "curl": true,
-        "rm": true,
-        "export": true
-    }
+  "chat.promptFilesRecommendations": {
+    "speckit.constitution": false,
+    "speckit.specify": false,
+    "speckit.plan": false,
+    "speckit.tasks": false,
+    "speckit.implement": false
+  },
+  "terminal.integrated.shellIntegration.enabled": true,
+  "chat.agent.maxRequests": 25,
+  "chat.tools.terminal.enableAutoApprove": true,
+  "chat.tools.terminal.blockDetectedFileWrites": "outsideWorkspace",
+  "chat.tools.terminal.autoApprove": {
+    ".specify/scripts/bash/": false,
+    ".specify/scripts/powershell/": false,
+    "/workspace/.specify/scripts/bash/validate-env.sh": false,
+
+    "bash": false,
+    "pre-commit": false,
+    "git": false,
+
+    "ls": true,
+    "pwd": true,
+    "cd": true,
+    "echo": true,
+    "cut": true,
+
+    "cat": false,
+    "head": true,
+    "tail": true,
+    "wc": true,
+
+    "mkdir": false,
+    "mv": false,
+    "terraform": false,
+    "sed": false,
+    "aws": false,
+    "command": false,
+    "curl": false,
+    "rm": false,
+    "export": false,
+
+    "/^(\\.\\/)?\\.specify\\/scripts\\/bash\\/validate-env\\.sh(?=.*\\s--(quiet|json))(\\s+--(quiet|json))*\\s*$/": true,
+    "/^(\\.\\/)?\\.specify\\/scripts\\/bash\\/check-prerequisites\\.sh(?=.*\\s--(json|paths-only))(\\s+--(json|paths-only|require-tasks|include-tasks))*\\s*$/": true,
+
+    "/^terraform\\s+init(\\s+(?:-input=false|-no-color|-upgrade|-reconfigure|-backend=false|-lockfile=readonly))*\\s*$/": true,
+    "/^terraform\\s+validate(\\s+-no-color)?\\s*$/": true,
+    "/^terraform\\s+fmt(?=.*\\s-check)(\\s+(?:-check|-diff|-recursive|-no-color))*\\s*$/": true
+  }
 }
+
