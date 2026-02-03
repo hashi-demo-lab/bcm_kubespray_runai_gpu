@@ -4,29 +4,21 @@
 
 # =============================================================================
 # Kubernetes Provider
-# Uses credentials from infrastructure remote state
-# Certificates are base64-decoded from input variables
-# trimspace() removes any trailing newlines/whitespace from tfvars values
+# Uses kubeconfig file for authentication (simpler and more reliable)
 # =============================================================================
 
 provider "kubernetes" {
-  host                   = local.kubernetes_host
-  cluster_ca_certificate = base64decode(trimspace(local.kubernetes_ca_certificate))
-  client_certificate     = base64decode(trimspace(local.kubernetes_client_cert))
-  client_key             = base64decode(trimspace(local.kubernetes_client_key))
+  config_path = var.kubeconfig_path
 }
 
 # =============================================================================
 # Helm Provider
-# Uses same credentials as Kubernetes provider
+# Uses same kubeconfig as Kubernetes provider
 # =============================================================================
 
 provider "helm" {
   kubernetes {
-    host                   = local.kubernetes_host
-    cluster_ca_certificate = base64decode(trimspace(local.kubernetes_ca_certificate))
-    client_certificate     = base64decode(trimspace(local.kubernetes_client_cert))
-    client_key             = base64decode(trimspace(local.kubernetes_client_key))
+    config_path = var.kubeconfig_path
   }
 }
 

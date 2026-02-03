@@ -6,27 +6,34 @@
 # Kubernetes Cluster Connection Configuration
 # =============================================================================
 
-variable "kubernetes_host" {
-  description = "Kubernetes API server endpoint URL"
+variable "kubeconfig_path" {
+  description = "Path to the kubeconfig file for Kubernetes authentication"
   type        = string
+  default     = "../kubeconfig"
+}
+
+variable "kubernetes_host" {
+  description = "Kubernetes API server endpoint URL (optional when using kubeconfig_path)"
+  type        = string
+  default     = ""
 }
 
 variable "kubernetes_ca_certificate" {
-  description = "Base64-encoded Kubernetes cluster CA certificate"
+  description = "Base64-encoded Kubernetes cluster CA certificate (optional when using kubeconfig_path)"
   type        = string
-  # Note: sensitive removed to allow base64decode() - data is already encoded
+  default     = ""
 }
 
 variable "kubernetes_client_certificate" {
-  description = "Base64-encoded Kubernetes client certificate"
+  description = "Base64-encoded Kubernetes client certificate (optional when using kubeconfig_path)"
   type        = string
-  # Note: sensitive removed to allow base64decode() - data is already encoded
+  default     = ""
 }
 
 variable "kubernetes_client_key" {
-  description = "Base64-encoded Kubernetes client private key"
+  description = "Base64-encoded Kubernetes client private key (optional when using kubeconfig_path)"
   type        = string
-  # Note: sensitive removed to allow base64decode() - data is already encoded
+  default     = ""
 }
 
 # =============================================================================
