@@ -80,8 +80,7 @@ else
     -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" \
     -d "{
-      \"name\": \"${CLUSTER_NAME}\",
-      \"description\": \"BCM DGX GPU Cluster deployed via Terraform\"
+      \"name\": \"${CLUSTER_NAME}\"
     }" 2>/dev/null)
 
   CLUSTER_UID=$(echo "$CREATE_RESPONSE" | jq -r '.uuid // empty')
