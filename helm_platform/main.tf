@@ -14,3 +14,10 @@ locals {
   kubernetes_ca_certificate = base64decode(nonsensitive(var.kubernetes_ca_certificate))
   kubernetes_client_cert    = base64decode(nonsensitive(var.kubernetes_client_certificate))
   kubernetes_client_key     = base64decode(nonsensitive(var.kubernetes_client_key))
+
+  # Cluster metadata
+  cluster_name     = var.cluster_name
+  control_plane_ip = var.control_plane_ip
+  worker_ips       = var.worker_ips
+}
+
