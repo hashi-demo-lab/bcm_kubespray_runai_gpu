@@ -9,19 +9,16 @@
 output "cluster_name" {
   description = "Kubernetes cluster name"
   value       = local.cluster_name
-  sensitive   = true
 }
 
 output "kubernetes_api_endpoint" {
   description = "Kubernetes API server endpoint"
   value       = local.kubernetes_host
-  sensitive   = true
 }
 
 output "control_plane_ip" {
   description = "Control plane node IP address"
   value       = local.control_plane_ip
-  sensitive   = true
 }
 
 # =============================================================================
@@ -113,5 +110,4 @@ output "local_storage_enabled" {
 output "runai_access_url" {
   description = "URL to access Run:AI (via NodePort)"
   value       = var.enable_runai ? "https://${local.control_plane_ip}:30443" : null
-  sensitive   = true
 }
