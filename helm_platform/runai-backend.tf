@@ -52,6 +52,30 @@ resource "kubernetes_secret" "runai_reg_creds_backend" {
 }
 
 # =============================================================================
+# Custom CA Certificate Secret
+# Required when global.customCA.enabled is true (self-signed certs)
+# =============================================================================
+
+resource "kubernetes_secret" "runai_ca_cert" {
+  count = var.enable_runai && var.generate_self_signed_cert ? 1 : 0
+
+  metadata {
+    name      = "runai-ca-cert"
+    namespace = kubernetes_namespace.runai_backend[0].metadata[0].name
+  }
+
+  type = "Opaque"
+
+  data = {
+    "runai-ca.pem" = tls_self_signed_cert.runai[0].cert_pem
+  }
+
+  depends_on = [
+    kubernetes_namespace.runai_backend
+  ]
+}
+
+# =============================================================================
 # Run:AI Control Plane Installation via Helm
 # Deploys: Keycloak, PostgreSQL, Redis, Thanos, Grafana, Backend services
 # =============================================================================
@@ -83,6 +107,12 @@ resource "helm_release" "runai_backend" {
   set {
     name  = "global.customCA.enabled"
     value = tostring(var.generate_self_signed_cert)
+  }
+
+  # Custom CA secret name - must match kubernetes_secret.runai_ca_cert
+  set {
+    name  = "global.customCA.secretName"
+    value = "runai-ca-cert"
   }
 
   # ==========================================================================
@@ -265,6 +295,7 @@ resource "helm_release" "runai_backend" {
   depends_on = [
     kubernetes_namespace.runai_backend,
     kubernetes_secret.runai_reg_creds_backend,
+    kubernetes_secret.runai_ca_cert,
     helm_release.ingress_nginx,
     helm_release.prometheus_stack,
     helm_release.prometheus_adapter,
