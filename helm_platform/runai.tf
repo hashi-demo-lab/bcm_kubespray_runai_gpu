@@ -6,6 +6,41 @@
 #               Prometheus Adapter, LeaderWorkerSet Operator, Knative Operator, Ingress
 
 # =============================================================================
+# Automatic Cluster Creation via API (Phase 2)
+# Creates cluster in Run:AI control plane and retrieves credentials
+# =============================================================================
+
+data "external" "runai_cluster_credentials" {
+  count = var.enable_runai && var.enable_auto_cluster_creation && length(helm_release.runai_backend) > 0 ? 1 : 0
+
+  program = ["bash", "${path.module}/../scripts/create-runai-cluster.sh", var.runai_cluster_name]
+
+  query = {
+    # These are passed as environment variables to the script
+    dummy = "trigger"
+  }
+
+  depends_on = [
+    helm_release.runai_backend
+  ]
+}
+
+locals {
+  # Use auto-created credentials if available, otherwise use manually provided ones
+  runai_cluster_uid = (
+    var.runai_cluster_uid != "" ? var.runai_cluster_uid :
+    (length(data.external.runai_cluster_credentials) > 0 ? 
+      data.external.runai_cluster_credentials[0].result.cluster_uid : "")
+  )
+  
+  runai_client_secret = (
+    var.runai_client_secret != "" ? var.runai_client_secret :
+    (length(data.external.runai_cluster_credentials) > 0 ? 
+      data.external.runai_cluster_credentials[0].result.client_secret : "")
+  )
+}
+
+# =============================================================================
 # Run:AI Cluster Namespace
 # =============================================================================
 
@@ -115,14 +150,13 @@ resource "kubernetes_secret" "runai_tls" {
 
 # =============================================================================
 # Run:AI Cluster Installation via Helm
-# Only deploys if client secret is provided (obtained from control plane UI)
-# Two-phase deployment:
-#   Phase 1: Deploy control plane (runai-backend.tf) → access UI → create cluster
-#   Phase 2: Provide client_secret and cluster_uid → deploy this resource
+# Deploys automatically when:
+#   - enable_auto_cluster_creation = true (uses API to create cluster)
+#   - OR runai_client_secret is manually provided
 # =============================================================================
 
 resource "helm_release" "runai_cluster" {
-  count = var.enable_runai && var.runai_client_secret != "" ? 1 : 0
+  count = var.enable_runai && local.runai_client_secret != "" ? 1 : 0
 
   name       = "runai-cluster"
   repository = "https://runai.jfrog.io/artifactory/run-ai-charts"
@@ -147,7 +181,7 @@ resource "helm_release" "runai_cluster" {
 
   set_sensitive {
     name  = "controlPlane.clientSecret"
-    value = var.runai_client_secret
+    value = local.runai_client_secret
   }
 
   # ==========================================================================
@@ -156,7 +190,7 @@ resource "helm_release" "runai_cluster" {
 
   set {
     name  = "cluster.uid"
-    value = var.runai_cluster_uid
+    value = local.runai_cluster_uid
   }
 
   set {

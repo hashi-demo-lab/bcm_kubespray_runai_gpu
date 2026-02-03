@@ -56,8 +56,18 @@ output "runai_namespace" {
 }
 
 output "runai_cluster_deployed" {
-  description = "Whether Run:AI cluster component was deployed (requires client secret from control plane UI)"
+  description = "Whether Run:AI cluster component was deployed"
   value       = var.enable_runai ? length(helm_release.runai_cluster) > 0 : false
+}
+
+output "runai_cluster_uid" {
+  description = "Run:AI cluster UID (auto-created or manually provided)"
+  value       = var.enable_runai ? local.runai_cluster_uid : null
+}
+
+output "runai_cluster_name" {
+  description = "Run:AI cluster name"
+  value       = var.enable_runai ? var.runai_cluster_name : null
 }
 
 # =============================================================================

@@ -137,15 +137,27 @@ variable "runai_cluster_version" {
   default     = "2.21"
 }
 
+variable "runai_cluster_name" {
+  description = "Name for the Run:AI cluster (used when auto-creating via API)"
+  type        = string
+  default     = "bcm-gpu-cluster"
+}
+
+variable "enable_auto_cluster_creation" {
+  description = "Automatically create Run:AI cluster via API (requires RUNAI_USER and RUNAI_PASS env vars)"
+  type        = bool
+  default     = false
+}
+
 variable "runai_client_secret" {
-  description = "Run:AI client secret (obtained from self-hosted control plane UI after creating a cluster)"
+  description = "Run:AI client secret (auto-populated if enable_auto_cluster_creation=true, or manually from UI)"
   type        = string
   sensitive   = true
   default     = ""
 }
 
 variable "runai_cluster_uid" {
-  description = "Run:AI cluster UID (obtained from self-hosted control plane UI after creating a cluster)"
+  description = "Run:AI cluster UID (auto-populated if enable_auto_cluster_creation=true, or manually from UI)"
   type        = string
   default     = ""
 }
