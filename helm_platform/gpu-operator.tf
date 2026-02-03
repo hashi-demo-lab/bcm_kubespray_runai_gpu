@@ -8,6 +8,8 @@
 # Deploys GPU drivers, device plugin, container toolkit, and monitoring
 # =============================================================================
 
+# Import existing namespace if it exists, or create new
+# To import: terraform import 'kubernetes_namespace.gpu_operator[0]' gpu-operator
 resource "kubernetes_namespace" "gpu_operator" {
   count = var.enable_gpu_operator ? 1 : 0
 
@@ -20,6 +22,13 @@ resource "kubernetes_namespace" "gpu_operator" {
       "pod-security.kubernetes.io/audit"   = "privileged"
       "pod-security.kubernetes.io/warn"    = "privileged"
     }
+  }
+
+  lifecycle {
+    # Prevent destruction if namespace has resources
+    prevent_destroy = false
+    # Ignore changes to labels made externally
+    ignore_changes = [metadata[0].labels, metadata[0].annotations]
   }
 }
 

@@ -28,7 +28,8 @@ resource "helm_release" "lws_operator" {
   count = var.enable_lws_operator ? 1 : 0
 
   name       = "lws"
-  repository = "oci://registry.k8s.io/lws/charts/lws"
+  # Use OCI registry format correctly
+  repository = "oci://registry.k8s.io/lws/charts"
   chart      = "lws"
   version    = var.lws_operator_version
   namespace  = kubernetes_namespace.lws[0].metadata[0].name

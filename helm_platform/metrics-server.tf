@@ -44,8 +44,9 @@ resource "helm_release" "metrics_server" {
   values = [<<-EOT
     defaultArgs:
       - --cert-dir=/tmp
-      - --kubelet-preferred-address-types=Hostname,InternalIP,ExternalIP
+      - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
       - --kubelet-use-node-status-port
+      - --kubelet-insecure-tls
       - --metric-resolution=15s
 
     # Tolerations to schedule on control plane nodes
