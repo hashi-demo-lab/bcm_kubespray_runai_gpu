@@ -5,13 +5,14 @@
 # =============================================================================
 # Kubernetes Provider
 # Uses credentials from infrastructure remote state
+# Certificates are base64-decoded from input variables
 # =============================================================================
 
 provider "kubernetes" {
   host                   = local.kubernetes_host
-  cluster_ca_certificate = local.kubernetes_ca_certificate
-  client_certificate     = local.kubernetes_client_cert
-  client_key             = local.kubernetes_client_key
+  cluster_ca_certificate = base64decode(local.kubernetes_ca_certificate)
+  client_certificate     = base64decode(local.kubernetes_client_cert)
+  client_key             = base64decode(local.kubernetes_client_key)
 }
 
 # =============================================================================
@@ -22,8 +23,6 @@ provider "kubernetes" {
 provider "helm" {
   kubernetes {
     host                   = local.kubernetes_host
-    cluster_ca_certificate = local.kubernetes_ca_certificate
-    client_certificate     = local.kubernetes_client_cert
-    client_key             = local.kubernetes_client_key
-  }
-}
+    cluster_ca_certificate = base64decode(local.kubernetes_ca_certificate)
+    client_certificate     = base64decode(local.kubernetes_client_cert)
+    client_key             = base64decode(local.kubernetes_client_key)

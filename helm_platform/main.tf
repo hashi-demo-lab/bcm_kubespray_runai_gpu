@@ -8,12 +8,11 @@
 
 locals {
   # Cluster connection details from variables
-  # Note: nonsensitive() is used to allow base64decode on sensitive inputs
-  # The decoded values are still handled securely by the Kubernetes provider
+  # Values are passed as base64-encoded and decoded at provider level
   kubernetes_host           = var.kubernetes_host
-  kubernetes_ca_certificate = base64decode(nonsensitive(var.kubernetes_ca_certificate))
-  kubernetes_client_cert    = base64decode(nonsensitive(var.kubernetes_client_certificate))
-  kubernetes_client_key     = base64decode(nonsensitive(var.kubernetes_client_key))
+  kubernetes_ca_certificate = var.kubernetes_ca_certificate
+  kubernetes_client_cert    = var.kubernetes_client_certificate
+  kubernetes_client_key     = var.kubernetes_client_key
 
   # Cluster metadata
   cluster_name     = var.cluster_name
