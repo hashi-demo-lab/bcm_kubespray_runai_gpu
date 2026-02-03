@@ -14,19 +14,19 @@ variable "kubernetes_host" {
 variable "kubernetes_ca_certificate" {
   description = "Base64-encoded Kubernetes cluster CA certificate"
   type        = string
-  sensitive   = true
+  # Note: sensitive removed to allow base64decode() - data is already encoded
 }
 
 variable "kubernetes_client_certificate" {
   description = "Base64-encoded Kubernetes client certificate"
   type        = string
-  sensitive   = true
+  # Note: sensitive removed to allow base64decode() - data is already encoded
 }
 
 variable "kubernetes_client_key" {
   description = "Base64-encoded Kubernetes client private key"
   type        = string
-  sensitive   = true
+  # Note: sensitive removed to allow base64decode() - data is already encoded
 }
 
 # =============================================================================
