@@ -26,3 +26,6 @@ provider "helm" {
     cluster_ca_certificate = base64decode(local.kubernetes_ca_certificate)
     client_certificate     = base64decode(local.kubernetes_client_cert)
     client_key             = base64decode(local.kubernetes_client_key)
+  }
+}
+
