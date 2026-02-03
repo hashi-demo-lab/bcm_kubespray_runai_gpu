@@ -70,16 +70,33 @@ variable "enable_runai" {
 }
 
 # --- JFrog Registry Credentials ---
-# Required to access Run:AI container registry and Helm charts
+# NVIDIA provides SEPARATE credentials for:
+# 1. Helm charts (cp-charts-prod repository) - runai_helm_username/token
+# 2. Container images (runai.jfrog.io) - runai_image_username/token
 
+# Helm Chart Repository Credentials
+variable "runai_helm_username" {
+  description = "JFrog username for Run:AI Helm chart repository (cp-charts-prod). Contact NVIDIA support for credentials."
+  type        = string
+  default     = ""
+}
+
+variable "runai_helm_token" {
+  description = "JFrog token for Run:AI Helm chart repository (cp-charts-prod). Contact NVIDIA support for credentials."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+# Container Image Registry Credentials
 variable "runai_jfrog_username" {
-  description = "JFrog username for Run:AI registry access (default: self-hosted-image-puller-prod per NVIDIA docs)"
+  description = "JFrog username for Run:AI container images (default: self-hosted-image-puller-prod)"
   type        = string
   default     = "self-hosted-image-puller-prod"
 }
 
 variable "runai_jfrog_token" {
-  description = "JFrog token for Run:AI registry access (from NVIDIA)"
+  description = "JFrog token for Run:AI container images (from NVIDIA)"
   type        = string
   sensitive   = true
   default     = ""

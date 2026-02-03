@@ -57,12 +57,12 @@ resource "kubernetes_secret" "runai_reg_creds_backend" {
 # =============================================================================
 
 resource "helm_release" "runai_backend" {
-  count = var.enable_runai && var.runai_jfrog_token != "" ? 1 : 0
+  count = var.enable_runai && var.runai_helm_token != "" ? 1 : 0
 
   name                = "runai-backend"
   repository          = "https://runai.jfrog.io/artifactory/cp-charts-prod"
-  repository_username = var.runai_jfrog_username
-  repository_password = var.runai_jfrog_token
+  repository_username = var.runai_helm_username
+  repository_password = var.runai_helm_token
   chart               = "control-plane"
   version             = var.runai_backend_version
   namespace           = kubernetes_namespace.runai_backend[0].metadata[0].name

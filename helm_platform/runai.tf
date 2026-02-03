@@ -126,8 +126,10 @@ resource "helm_release" "runai_cluster" {
 
   name                = "runai-cluster"
   repository          = "https://runai.jfrog.io/artifactory/run-ai-charts"
-  repository_username = var.runai_jfrog_username
-  repository_password = var.runai_jfrog_token
+  # Note: run-ai-charts repo may use same or different credentials than cp-charts-prod
+  # If this fails with 403, contact NVIDIA for run-ai-charts repo credentials
+  repository_username = var.runai_helm_username != "" ? var.runai_helm_username : var.runai_jfrog_username
+  repository_password = var.runai_helm_token != "" ? var.runai_helm_token : var.runai_jfrog_token
   chart               = "runai-cluster"
   version             = var.runai_cluster_version
   namespace           = kubernetes_namespace.runai[0].metadata[0].name
