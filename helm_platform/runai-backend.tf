@@ -144,6 +144,11 @@ resource "helm_release" "runai_backend" {
                 matchExpressions:
                   - key: node-role.kubernetes.io/runai-system
                     operator: Exists
+    # Keycloak hostname configuration - include port for NodePort ingress
+    keycloakx:
+      extraEnv: |
+        - name: KC_HOSTNAME
+          value: "https://${var.runai_domain}:${var.runai_external_port}/auth"
     # Backend services - control-plane tolerations
     assetsService:
       tolerations:

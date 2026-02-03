@@ -116,6 +116,12 @@ variable "runai_domain" {
   default     = "bcm-head-01.eth.cluster"
 }
 
+variable "runai_external_port" {
+  description = "External HTTPS port for Run:AI access (NodePort when not using LoadBalancer)"
+  type        = string
+  default     = "30443"
+}
+
 variable "runai_admin_email" {
   description = "Admin email for Run:AI control plane initial login"
   type        = string

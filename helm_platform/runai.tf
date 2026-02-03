@@ -176,7 +176,7 @@ resource "helm_release" "runai_cluster" {
 
   set {
     name  = "controlPlane.url"
-    value = "https://${var.runai_domain}"
+    value = "https://${var.runai_domain}:${var.runai_external_port}"
   }
 
   set_sensitive {
@@ -195,7 +195,7 @@ resource "helm_release" "runai_cluster" {
 
   set {
     name  = "cluster.url"
-    value = "https://${var.runai_domain}"
+    value = "https://${var.runai_domain}:${var.runai_external_port}"
   }
 
   # ==========================================================================
