@@ -124,16 +124,14 @@ resource "kubernetes_secret" "runai_tls" {
 resource "helm_release" "runai_cluster" {
   count = var.enable_runai && var.runai_client_secret != "" ? 1 : 0
 
-  name                = "runai-cluster"
-  repository          = "https://runai.jfrog.io/artifactory/run-ai-charts"
-  # Note: run-ai-charts repo may use same or different credentials than cp-charts-prod
-  # If this fails with 403, contact NVIDIA for run-ai-charts repo credentials
-  repository_username = var.runai_helm_username != "" ? var.runai_helm_username : var.runai_jfrog_username
-  repository_password = var.runai_helm_token != "" ? var.runai_helm_token : var.runai_jfrog_token
-  chart               = "runai-cluster"
-  version             = var.runai_cluster_version
-  namespace           = kubernetes_namespace.runai[0].metadata[0].name
-  create_namespace    = false
+  name       = "runai-cluster"
+  repository = "https://runai.jfrog.io/artifactory/run-ai-charts"
+  # Note: Helm chart repos (cp-charts-prod, run-ai-charts) are public
+  # Only container image registry (runai.jfrog.io) requires JFrog credentials
+  chart      = "runai-cluster"
+  version    = var.runai_cluster_version
+  namespace  = kubernetes_namespace.runai[0].metadata[0].name
+  create_namespace = false
 
   wait    = true
   timeout = 900 # 15 minutes

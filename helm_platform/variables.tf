@@ -107,7 +107,7 @@ variable "runai_jfrog_token" {
 variable "runai_backend_version" {
   description = "Run:AI control-plane Helm chart version"
   type        = string
-  default     = "2.21"
+  default     = "2.21.63"
 }
 
 variable "runai_domain" {

@@ -57,16 +57,16 @@ resource "kubernetes_secret" "runai_reg_creds_backend" {
 # =============================================================================
 
 resource "helm_release" "runai_backend" {
-  count = var.enable_runai && var.runai_helm_token != "" ? 1 : 0
+  count = var.enable_runai ? 1 : 0
 
-  name                = "runai-backend"
-  repository          = "https://runai.jfrog.io/artifactory/cp-charts-prod"
-  repository_username = var.runai_helm_username
-  repository_password = var.runai_helm_token
-  chart               = "control-plane"
-  version             = var.runai_backend_version
-  namespace           = kubernetes_namespace.runai_backend[0].metadata[0].name
-  create_namespace    = false
+  name       = "runai-backend"
+  repository = "https://runai.jfrog.io/artifactory/cp-charts-prod"
+  # Note: Helm chart repo is public, no credentials needed
+  # Only container image registry (runai.jfrog.io) requires credentials
+  chart      = "control-plane"
+  version    = var.runai_backend_version
+  namespace  = kubernetes_namespace.runai_backend[0].metadata[0].name
+  create_namespace = false
 
   wait    = true
   timeout = 1200 # 20 minutes per BCM config
