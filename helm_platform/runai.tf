@@ -75,7 +75,10 @@ resource "kubernetes_secret" "runai_ca_cert_cluster" {
   type = "Opaque"
 
   data = {
-    "runai-ca.pem" = tls_self_signed_cert.runai[0].cert_pem
+    # Run:AI pre-install job expects specific key names
+    "ca.crt"        = tls_self_signed_cert.runai[0].cert_pem
+    "ca-bundle.crt" = tls_self_signed_cert.runai[0].cert_pem
+    "runai-ca.pem"  = tls_self_signed_cert.runai[0].cert_pem
   }
 
   depends_on = [
@@ -234,6 +237,12 @@ resource "helm_release" "runai_cluster" {
   set {
     name  = "global.customCA.secretName"
     value = "runai-ca-cert"
+  }
+
+  # Key name within the secret containing the CA certificate
+  set {
+    name  = "global.customCA.secretKey"
+    value = "ca.crt"
   }
 
   # ==========================================================================
