@@ -76,6 +76,31 @@ resource "kubernetes_secret" "runai_ca_cert" {
 }
 
 # =============================================================================
+# TLS Secret for Ingress
+# Required for HTTPS termination at ingress - referenced as "runai-backend-tls"
+# =============================================================================
+
+resource "kubernetes_secret" "runai_backend_tls" {
+  count = var.enable_runai && var.generate_self_signed_cert ? 1 : 0
+
+  metadata {
+    name      = "runai-backend-tls"
+    namespace = kubernetes_namespace.runai_backend[0].metadata[0].name
+  }
+
+  type = "kubernetes.io/tls"
+
+  data = {
+    "tls.crt" = tls_self_signed_cert.runai[0].cert_pem
+    "tls.key" = tls_private_key.runai[0].private_key_pem
+  }
+
+  depends_on = [
+    kubernetes_namespace.runai_backend
+  ]
+}
+
+# =============================================================================
 # Run:AI Control Plane Installation via Helm
 # Deploys: Keycloak, PostgreSQL, Redis, Thanos, Grafana, Backend services
 # =============================================================================
@@ -99,9 +124,11 @@ resource "helm_release" "runai_backend" {
   # Global Configuration
   # ==========================================================================
 
+  # Include port in domain for NodePort ingress - Keycloak KC_HOSTNAME is templated from this
+  # Format: hostname:port (e.g., bcm-head-01.eth.cluster:30443)
   set {
     name  = "global.domain"
-    value = var.runai_domain
+    value = "${var.runai_domain}:${var.runai_external_port}"
   }
 
   set {
@@ -144,11 +171,6 @@ resource "helm_release" "runai_backend" {
                 matchExpressions:
                   - key: node-role.kubernetes.io/runai-system
                     operator: Exists
-    # Keycloak hostname configuration - include port for NodePort ingress
-    keycloakx:
-      extraEnv: |
-        - name: KC_HOSTNAME
-          value: "https://${var.runai_domain}:${var.runai_external_port}/auth"
     # Backend services - control-plane tolerations
     assetsService:
       tolerations:
@@ -301,6 +323,7 @@ resource "helm_release" "runai_backend" {
     kubernetes_namespace.runai_backend,
     kubernetes_secret.runai_reg_creds_backend,
     kubernetes_secret.runai_ca_cert,
+    kubernetes_secret.runai_backend_tls,
     helm_release.ingress_nginx,
     helm_release.prometheus_stack,
     helm_release.prometheus_adapter,
