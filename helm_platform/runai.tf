@@ -227,16 +227,18 @@ resource "helm_release" "runai_cluster" {
 
   # ==========================================================================
   # Custom CA for self-signed certificates
-  # IMPORTANT: Use values override for complex nested structures
+  # Structure from chart values.yaml: global.customCA.secret.name/key
   # ==========================================================================
 
   values = [
     yamlencode({
       global = {
         customCA = {
-          enabled    = var.generate_self_signed_cert
-          secretName = "runai-ca-cert"
-          secretKey  = "ca.crt"
+          enabled = var.generate_self_signed_cert
+          secret = {
+            name = "runai-ca-cert"
+            key  = "runai-ca.pem"
+          }
         }
       }
     })

@@ -146,7 +146,9 @@ resource "helm_release" "runai_backend" {
       # Custom CA for self-signed certificates
       customCA:
         enabled: ${var.generate_self_signed_cert}
-        secretName: "runai-ca-cert"
+        secret:
+          name: "runai-ca-cert"
+          key: "runai-ca.pem"
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
