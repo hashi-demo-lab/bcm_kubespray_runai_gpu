@@ -143,12 +143,21 @@ resource "helm_release" "runai_backend" {
     global:
       # Domain without port - Ingress hostnames cannot contain ports (RFC 1123)
       domain: "${var.runai_domain}"
-      # Custom CA for self-signed certificates
+      # Custom CA for self-signed certificates (control-plane chart structure)
       customCA:
         enabled: ${var.generate_self_signed_cert}
-        secret:
-          name: "runai-ca-cert"
-          key: "runai-ca.pem"
+        env:
+          - name: NODE_EXTRA_CA_CERTS
+            value: /etc/ssl/certs/runai-ca.pem
+        volumes:
+          - name: runai-ca-cert
+            secret:
+              secretName: runai-ca-cert
+        volumeMounts:
+          - mountPath: /etc/ssl/certs/runai-ca.pem
+            name: runai-ca-cert
+            readOnly: true
+            subPath: runai-ca.pem
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
