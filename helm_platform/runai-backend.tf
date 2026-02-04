@@ -124,11 +124,10 @@ resource "helm_release" "runai_backend" {
   # Global Configuration
   # ==========================================================================
 
-  # Include port in domain for NodePort ingress - Keycloak KC_HOSTNAME is templated from this
-  # Format: hostname:port (e.g., bcm-head-01.eth.cluster:30443)
+  # Domain without port - Ingress hostnames cannot contain ports (RFC 1123)
   set {
     name  = "global.domain"
-    value = "${var.runai_domain}:${var.runai_external_port}"
+    value = var.runai_domain
   }
 
   set {
@@ -171,6 +170,14 @@ resource "helm_release" "runai_backend" {
                 matchExpressions:
                   - key: node-role.kubernetes.io/runai-system
                     operator: Exists
+    # Keycloak KC_HOSTNAME override - include port for NodePort ingress
+    # This sets the OIDC issuer URL to include the NodePort
+    keycloakx:
+      extraEnvVars:
+        - name: KC_HOSTNAME
+          value: "https://${var.runai_domain}:${var.runai_external_port}/auth"
+        - name: KC_HOSTNAME_STRICT
+          value: "false"
     # Backend services - control-plane tolerations
     assetsService:
       tolerations:
