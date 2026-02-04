@@ -121,28 +121,7 @@ resource "helm_release" "runai_backend" {
   timeout = 1200 # 20 minutes per BCM config
 
   # ==========================================================================
-  # Global Configuration
-  # ==========================================================================
-
-  # Domain without port - Ingress hostnames cannot contain ports (RFC 1123)
-  set {
-    name  = "global.domain"
-    value = var.runai_domain
-  }
-
-  set {
-    name  = "global.customCA.enabled"
-    value = tostring(var.generate_self_signed_cert)
-  }
-
-  # Custom CA secret name - must match kubernetes_secret.runai_ca_cert
-  set {
-    name  = "global.customCA.secretName"
-    value = "runai-ca-cert"
-  }
-
-  # ==========================================================================
-  # Admin Credentials
+  # Admin Credentials (using set for sensitive values)
   # ==========================================================================
 
   set {
@@ -156,12 +135,18 @@ resource "helm_release" "runai_backend" {
   }
 
   # ==========================================================================
-  # Node Affinity and Tolerations
-  # From cm-kubernetes-setup.conf - schedule on control-plane nodes
+  # Consolidated Values Configuration
+  # Using values block for complex nested structures (customCA, keycloak, etc.)
   # ==========================================================================
 
   values = [<<-EOT
     global:
+      # Domain without port - Ingress hostnames cannot contain ports (RFC 1123)
+      domain: "${var.runai_domain}"
+      # Custom CA for self-signed certificates
+      customCA:
+        enabled: ${var.generate_self_signed_cert}
+        secretName: "runai-ca-cert"
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
