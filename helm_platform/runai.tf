@@ -176,6 +176,35 @@ resource "kubernetes_secret" "runai_tls" {
 }
 
 # =============================================================================
+# Pre-Install Job Cleanup
+# Removes any failed pre-install/pre-delete jobs before deployment
+# =============================================================================
+
+resource "null_resource" "cleanup_runai_jobs" {
+  count = var.enable_runai && local.runai_client_secret != "" ? 1 : 0
+
+  triggers = {
+    # Re-run cleanup whenever cluster UID or secret changes
+    cluster_uid = local.runai_cluster_uid
+    always_run  = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl delete job -n runai pre-install pre-delete --ignore-not-found=true || true
+    EOT
+    environment = {
+      KUBECONFIG = "${path.root}/../kubeconfig"
+    }
+  }
+
+  depends_on = [
+    kubernetes_namespace.runai,
+    kubernetes_secret.runai_ca_cert_cluster
+  ]
+}
+
+# =============================================================================
 # Run:AI Cluster Installation via Helm
 # Deploys automatically when:
 #   - enable_auto_cluster_creation = true (uses API to create cluster)
@@ -315,6 +344,7 @@ resource "helm_release" "runai_cluster" {
   # ==========================================================================
 
   depends_on = [
+    null_resource.cleanup_runai_jobs,
     kubernetes_namespace.runai,
     kubernetes_secret.runai_tls,
     kubernetes_secret.runai_reg_creds_cluster,
