@@ -60,6 +60,30 @@ resource "kubernetes_namespace" "runai" {
 }
 
 # =============================================================================
+# Custom CA Certificate Secret (cluster namespace)
+# Required for pre-install job to trust self-signed certs
+# =============================================================================
+
+resource "kubernetes_secret" "runai_ca_cert_cluster" {
+  count = var.enable_runai && var.generate_self_signed_cert ? 1 : 0
+
+  metadata {
+    name      = "runai-ca-cert"
+    namespace = kubernetes_namespace.runai[0].metadata[0].name
+  }
+
+  type = "Opaque"
+
+  data = {
+    "runai-ca.pem" = tls_self_signed_cert.runai[0].cert_pem
+  }
+
+  depends_on = [
+    kubernetes_namespace.runai
+  ]
+}
+
+# =============================================================================
 # JFrog Registry Credentials (cluster namespace)
 # =============================================================================
 
@@ -207,6 +231,11 @@ resource "helm_release" "runai_cluster" {
     value = tostring(var.generate_self_signed_cert)
   }
 
+  set {
+    name  = "global.customCA.secretName"
+    value = "runai-ca-cert"
+  }
+
   # ==========================================================================
   # TLS Configuration
   # ==========================================================================
@@ -281,6 +310,7 @@ resource "helm_release" "runai_cluster" {
     kubernetes_namespace.runai,
     kubernetes_secret.runai_tls,
     kubernetes_secret.runai_reg_creds_cluster,
+    kubernetes_secret.runai_ca_cert_cluster,
     helm_release.runai_backend,
     helm_release.gpu_operator,
     helm_release.ingress_nginx,

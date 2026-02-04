@@ -172,8 +172,9 @@ resource "helm_release" "runai_backend" {
                     operator: Exists
     # Keycloak KC_HOSTNAME override - include port for NodePort ingress
     # This sets the OIDC issuer URL to include the NodePort
+    # Using extraEnv as YAML string format (codecentric/keycloakx chart format)
     keycloakx:
-      extraEnvVars:
+      extraEnv: |
         - name: KC_HOSTNAME
           value: "https://${var.runai_domain}:${var.runai_external_port}/auth"
         - name: KC_HOSTNAME_STRICT
