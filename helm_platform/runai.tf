@@ -203,12 +203,11 @@ resource "kubernetes_secret" "runai_tls" {
 # =============================================================================
 
 resource "null_resource" "cleanup_runai_jobs" {
-  count = var.enable_runai && local.runai_client_secret != "" ? 1 : 0
+  count = var.enable_runai ? 1 : 0
 
   triggers = {
-    # Re-run cleanup whenever cluster UID or secret changes
-    cluster_uid = local.runai_cluster_uid
-    always_run  = timestamp()
+    # Re-run cleanup on every apply to ensure clean state
+    always_run = timestamp()
   }
 
   provisioner "local-exec" {
@@ -234,7 +233,8 @@ resource "null_resource" "cleanup_runai_jobs" {
 # =============================================================================
 
 resource "helm_release" "runai_cluster" {
-  count = var.enable_runai && local.runai_client_secret != "" ? 1 : 0
+  # Deploy if runai enabled AND (manual secret provided OR auto-creation enabled)
+  count = var.enable_runai && (var.runai_client_secret != "" || var.enable_auto_cluster_creation) ? 1 : 0
 
   name       = "runai-cluster"
   repository = "https://runai.jfrog.io/artifactory/run-ai-charts"
