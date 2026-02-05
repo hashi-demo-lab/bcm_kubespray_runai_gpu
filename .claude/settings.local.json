@@ -9,7 +9,9 @@
       "Bash(head:*)",
       "Bash(tail:*)",
       "Bash(wc:*)",
-      "WebFetch(domain:www.anthropic.com)"
+      "WebFetch(domain:www.anthropic.com)",
+      "Bash(gh pr list:*)",
+      "Bash(xargs git log:*)"
     ],
     "deny": [
       "Write(.gitignore)",
