@@ -143,3 +143,12 @@ You can always run `.specify/scripts/bash/check-prerequisites.sh` to understand 
 ---
 
 **Remember**: Specifications drive implementation. Never skip phases. Always verify with MCP tools. Security is non-negotiable.
+
+## Git Workflow
+
+**IMPORTANT**: Follow this strict git workflow:
+
+- **Local host only**: Update code, `git add`, `git commit`, `git push`
+- **SSH remote host only**: `git pull`
+- **NEVER** run `git add`, `git commit`, or `git push` on the SSH remote host
+- **NEVER** run any other git commands on the SSH host except `git pull`

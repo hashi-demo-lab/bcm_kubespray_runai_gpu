@@ -143,6 +143,9 @@ resource "helm_release" "runai_backend" {
     global:
       # Domain without port - Ingress hostnames cannot contain ports (RFC 1123)
       domain: "${var.runai_domain}"
+      # Keycloak external URL with port for token validation
+      # Backend services use this to construct the expected issuer URL
+      keycloakExternalEndpoint: "${var.runai_domain}:${var.runai_external_port}"
       # Custom CA for self-signed certificates (control-plane chart structure)
       customCA:
         enabled: ${var.generate_self_signed_cert}
@@ -206,6 +209,9 @@ resource "helm_release" "runai_backend" {
           operator: "Exists"
           effect: "NoSchedule"
     clusterService:
+      # Override keycloak external endpoint to include NodePort
+      # Without this, backend validates tokens against issuer without port
+      keycloakExternalEndpoint: "${var.runai_domain}:${var.runai_external_port}"
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
