@@ -175,6 +175,10 @@ resource "helm_release" "runai_backend" {
           value: "https://${var.runai_domain}:${var.runai_external_port}/auth"
         - name: KC_HOSTNAME_STRICT
           value: "false"
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
     # Backend services - control-plane tolerations
     assetsService:
       tolerations:
@@ -287,11 +291,8 @@ resource "helm_release" "runai_backend" {
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
           effect: "NoSchedule"
-    keycloakx:
-      tolerations:
-        - key: "node-role.kubernetes.io/control-plane"
-          operator: "Exists"
-          effect: "NoSchedule"
+    # keycloakx is defined earlier with extraEnv - DO NOT duplicate here
+    # (tolerations moved to the earlier keycloakx block)
     postgresql:
       primary:
         tolerations:
