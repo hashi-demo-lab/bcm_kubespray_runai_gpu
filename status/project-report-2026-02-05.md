@@ -196,16 +196,6 @@ Recommendations
 
 6. Evaluate upgrading the containerd relocation from a manual script to a Terraform-managed resource. This is currently the one remaining manual prerequisite step that breaks the fully automated pipeline.
 
-7. Address node OS reset-on-reboot behavior. In the current BCM node configuration, the operating system is reset to its base image on every reboot, discarding all runtime configuration changes including Kubernetes binaries, containerd state, kubelet configuration, GPU driver settings, and network customizations. This means any node reboot effectively removes that node from the cluster and destroys all workloads scheduled on it. For production resilience, we recommend one of the following approaches:
-
-   a. Configuration recovery automation: Architect a post-boot reconciliation process that automatically re-applies the required node configuration after an OS reset. This could be implemented as a BCM post-boot hook or a PXE-triggered Ansible playbook that restores the node to cluster-ready state, re-joins it to the Kubernetes cluster, and allows the scheduler to resume workloads -- all without manual intervention.
-
-   b. Node profile differencing with graceful lifecycle management: If full recovery automation is not feasible, implement a mechanism that captures the delta between the base OS image and the current running configuration into a persistent node profile. On shutdown or reboot, the system would first cordon and drain the node (gracefully evicting pods and respecting disruption budgets), save the configuration diff to persistent storage outside the reset boundary, and then allow the reboot to proceed. On boot, the saved profile would be re-applied automatically before the node is marked schedulable, preserving cluster integrity and minimizing workload disruption.
-
-   c. Terraform-orchestrated node lifecycle management: Implement a Terraform-driven workflow where nodes gracefully leave the Kubernetes cluster and deregister from dependent applications (Run:AI, GPU Operator, Prometheus) before a reboot occurs. This would involve cordoning and draining the node, removing it from the cluster via kubectl or the Kubernetes API, and recording its membership state. After the reboot and OS reset, Terraform would programmatically re-provision the node -- re-applying the Kubespray configuration, rejoining it to the cluster, restoring node labels and taints, and re-registering it with platform services. This approach treats node reboots as a planned infrastructure lifecycle event managed entirely through code, aligning with the project's existing Terraform-as-orchestrator architecture and enabling reboot operations to be triggered, tracked, and audited as part of a standard terraform apply workflow.
-
-   Any combination of these approaches should ensure that planned maintenance reboots and unexpected restarts do not cascade into cluster-wide outages, particularly on GPU worker nodes where long-running training jobs cannot be trivially rescheduled.
-
 ---
 Note
 
