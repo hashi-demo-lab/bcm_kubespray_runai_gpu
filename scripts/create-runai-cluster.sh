@@ -100,7 +100,7 @@ INSTALL_VALUES=$(curl -sk "${RUNAI_URL}/v1/k8s/clusters/${CLUSTER_UID}/installfi
 
 # Try to extract client secret from install values
 # The format varies by Run:AI version, try multiple paths
-CLIENT_SECRET=$(echo "$INSTALL_VALUES" | jq -r '.controlPlane.clientSecret // .spec.controlPlane.clientSecret // empty' 2>/dev/null)
+CLIENT_SECRET=$(echo "$INSTALL_VALUES" | jq -r '.controlPlane.clientSecret // .spec.controlPlane.clientSecret // empty' 2>/dev/null || true)
 
 # If not found in install values, try the cluster details endpoint
 if [ -z "$CLIENT_SECRET" ]; then
@@ -109,7 +109,7 @@ if [ -z "$CLIENT_SECRET" ]; then
     -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" 2>/dev/null)
   
-  CLIENT_SECRET=$(echo "$CLUSTER_DETAILS" | jq -r '.clientSecret // .spec.clientSecret // empty' 2>/dev/null)
+  CLIENT_SECRET=$(echo "$CLUSTER_DETAILS" | jq -r '.clientSecret // .spec.clientSecret // empty' 2>/dev/null || true)
 fi
 
 # Try yet another endpoint - get token
@@ -119,7 +119,7 @@ if [ -z "$CLIENT_SECRET" ]; then
     -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" 2>/dev/null)
   
-  CLIENT_SECRET=$(echo "$TOKEN_RESPONSE" | jq -r '.token // .clientSecret // empty' 2>/dev/null)
+  CLIENT_SECRET=$(echo "$TOKEN_RESPONSE" | jq -r '.token // .clientSecret // empty' 2>/dev/null || true)
 fi
 
 if [ -z "$CLIENT_SECRET" ]; then

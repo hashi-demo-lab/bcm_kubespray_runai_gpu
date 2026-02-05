@@ -71,7 +71,8 @@ resource "terraform_data" "label_gpu_nodes" {
   ]
 
   depends_on = [
-    terraform_data.run_kubespray
+    terraform_data.run_kubespray,
+    local_file.kubeconfig
   ]
 
   provisioner "local-exec" {

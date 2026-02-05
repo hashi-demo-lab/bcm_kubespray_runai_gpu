@@ -45,4 +45,4 @@ configstore/
 # exclude agent sandbox files backend and tfvars
 sandbox.auto.tfvars
 sandbox.backend.tf
-
+node_modules/**

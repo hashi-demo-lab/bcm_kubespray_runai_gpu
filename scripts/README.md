@@ -119,12 +119,14 @@ Configures the KUBECONFIG environment variable in your shell profile for persist
 **Why needed:** After cluster deployment, kubectl requires the kubeconfig file. Without setting KUBECONFIG persistently, you must specify `--kubeconfig` on every command or set it manually each SSH session.
 
 **Usage:**
+
 ```bash
 ./scripts/setup-kubeconfig.sh
 source ~/.bashrc
 ```
 
 **What it does:**
+
 1. Detects the kubeconfig file location in the repo
 2. Adds `export KUBECONFIG=...` to your shell config (~/.bashrc, ~/.bash_profile, or ~/.zshrc)
 3. Tests kubectl connectivity

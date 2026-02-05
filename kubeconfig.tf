@@ -30,3 +30,18 @@ data "external" "fetch_kubeconfig" {
     terraform_data.run_kubespray
   ]
 }
+# =============================================================================
+# Write Kubeconfig to File for kubectl Operations
+# =============================================================================
+
+resource "local_file" "kubeconfig" {
+  count = var.enable_kubespray_deployment && length(data.external.fetch_kubeconfig) > 0 ? 1 : 0
+
+  filename        = "${path.module}/kubeconfig"
+  file_permission = "0600"
+  content         = base64decode(data.external.fetch_kubeconfig[0].result.kubeconfig)
+
+  depends_on = [
+    data.external.fetch_kubeconfig
+  ]
+}
