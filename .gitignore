@@ -47,3 +47,12 @@ sandbox.auto.tfvars
 sandbox.backend.tf
 node_modules/**
 
+# Local walkthrough draft
+runaiwalkthru.md
+
+# Project report drafts
+project-report*
+
+# Project status reports
+PROJECT_STATUS*
+

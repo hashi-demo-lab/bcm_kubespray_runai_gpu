@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BCM Device Resource Schema",
+  "description": "Schema for bcm_cmdevice_device resource configuration",
+  "type": "object",
+  "required": ["hostname", "mac", "category", "management_network", "power_control", "interfaces", "bmc_settings"],
+  "properties": {
+    "hostname": {
+      "type": "string",
+      "description": "Unique node hostname",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]*$",
+      "examples": ["dgx-05", "cpu-03"]
+    },
+    "mac": {
+      "type": "string",
+      "description": "Primary network interface MAC address",
+      "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$",
+      "examples": ["00:1A:2B:3C:4D:5E"]
+    },
+    "category": {
+      "type": "string",
+      "description": "Provisioning category name",
+      "examples": ["gpu-worker", "control-plane", "default"]
+    },
+    "management_network": {
+      "type": "string",
+      "description": "BCM management network ID for PXE boot",
+      "examples": ["network-uuid-1234"]
+    },
+    "power_control": {
+      "type": "string",
+      "enum": ["ipmi"],
+      "description": "Power control protocol (always IPMI)"
+    },
+    "interfaces": {
+      "type": "array",
+      "description": "Network interface configurations",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/interface"
+      }
+    },
+    "bmc_settings": {
+      "type": "object",
+      "required": ["username", "password"],
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "BMC username",
+          "examples": ["admin", "root"]
+        },
+        "password": {
+          "type": "string",
+          "description": "BMC password (sensitive)",
+          "format": "password"
+        },
+        "privilege": {
+          "type": "string",
+          "enum": ["USER", "OPERATOR", "ADMINISTRATOR"],
+          "default": "ADMINISTRATOR"
+        }
+      }
+    },
+    "roles": {
+      "type": "array",
+      "description": "Node role assignments",
+      "items": {
+        "type": "string",
+        "examples": ["compute", "gpu", "control_plane", "etcd", "provisioning"]
+      }
+    },
+    "kernel_parameters": {
+      "type": "string",
+      "description": "Custom kernel boot parameters (overrides category)",
+      "examples": ["nvidia-drm.modeset=1 iommu=pt"]
+    },
+    "boot_loader": {
+      "type": "string",
+      "description": "Bootloader configuration (overrides category)",
+      "examples": ["grub2"]
+    }
+  },
+  "definitions": {
+    "interface": {
+      "type": "object",
+      "required": ["type", "name", "network"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["physical", "bond", "bmc"],
+          "description": "Interface type"
+        },
+        "name": {
+          "type": "string",
+          "description": "Interface name",
+          "examples": ["eth0", "eth1", "bond0", "bmc"]
+        },
+        "mac": {
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$",
+          "description": "Interface MAC address (required for physical/bmc)"
+        },
+        "network": {
+          "type": "string",
+          "description": "BCM network ID"
+        },
+        "ip": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "Static IP assignment (DHCP if omitted)"
+        },
+        "bootable": {
+          "type": "boolean",
+          "description": "Designates PXE boot interface (only one per device)",
+          "default": false
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "hostname": "dgx-05",
+      "mac": "00:1A:2B:3C:4D:5E",
+      "category": "gpu-worker",
+      "management_network": "network-id-1234",
+      "power_control": "ipmi",
+      "interfaces": [
+        {
+          "type": "bmc",
+          "name": "bmc",
+          "mac": "00:1A:2B:3C:4D:5F",
+          "network": "oob-network-id",
+          "ip": "10.229.10.50",
+          "bootable": false
+        },
+        {
+          "type": "physical",
+          "name": "eth0",
+          "mac": "00:1A:2B:3C:4D:5E",
+          "network": "mgmt-network-id",
+          "bootable": true
+        }
+      ],
+      "bmc_settings": {
+        "username": "admin",
+        "password": "SecurePassword123",
+        "privilege": "ADMINISTRATOR"
+      },
+      "roles": ["compute", "gpu"]
+    }
+  ]
+}

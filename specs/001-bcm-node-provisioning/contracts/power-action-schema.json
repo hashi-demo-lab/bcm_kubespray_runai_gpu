@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BCM Power Action Schema",
+  "description": "Schema for bcm_cmdevice_power action configuration",
+  "type": "object",
+  "required": ["device_id", "power_action"],
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Device UUID or hostname (foreign key)",
+      "examples": ["550e8400-e29b-41d4-a716-446655440000", "dgx-05"]
+    },
+    "power_action": {
+      "type": "string",
+      "enum": ["power_on", "power_off", "power_cycle", "power_reset"],
+      "description": "IPMI power operation"
+    },
+    "wait_for_completion": {
+      "type": "boolean",
+      "default": true,
+      "description": "Block until BMC confirms action executed"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3600,
+      "default": 600,
+      "description": "Maximum wait time in seconds"
+    }
+  },
+  "metadata": {
+    "lifecycle": "ephemeral",
+    "state_persistence": false,
+    "idempotency": "opt-in via enable_power_action variable"
+  },
+  "examples": [
+    {
+      "device_id": "dgx-05",
+      "power_action": "power_on",
+      "wait_for_completion": true,
+      "timeout": 600
+    },
+    {
+      "device_id": "550e8400-e29b-41d4-a716-446655440000",
+      "power_action": "power_cycle",
+      "wait_for_completion": true,
+      "timeout": 600
+    }
+  ]
+}

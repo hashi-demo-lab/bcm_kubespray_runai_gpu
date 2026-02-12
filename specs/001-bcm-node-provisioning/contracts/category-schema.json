@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BCM Category Resource Schema",
+  "description": "Schema for bcm_cmdevice_category resource configuration",
+  "type": "object",
+  "required": ["name", "software_image_proxy"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique category name",
+      "examples": ["gpu-worker", "control-plane", "storage"]
+    },
+    "software_image_proxy": {
+      "type": "string",
+      "description": "Software image UUID (foreign key)",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+    },
+    "install_mode": {
+      "type": "string",
+      "enum": ["AUTO", "FULL", "MINIMAL"],
+      "default": "AUTO",
+      "description": "Installation behavior"
+    },
+    "new_node_install_mode": {
+      "type": "string",
+      "enum": ["AUTO", "FULL", "MINIMAL"],
+      "description": "Override install mode for new nodes"
+    },
+    "bmc_settings": {
+      "type": "object",
+      "description": "Default BMC configuration for category",
+      "properties": {
+        "username": {"type": "string"},
+        "password": {"type": "string", "format": "password"},
+        "privilege": {"type": "string", "enum": ["USER", "OPERATOR", "ADMINISTRATOR"]}
+      }
+    },
+    "disksetup": {
+      "type": "string",
+      "description": "Disk partitioning configuration (XML format)",
+      "contentMediaType": "application/xml"
+    },
+    "initialize_scripts": {
+      "type": "array",
+      "description": "Pre-install scripts",
+      "items": {
+        "type": "string",
+        "examples": ["/cm/shared/scripts/pre-install.sh"]
+      }
+    },
+    "finalize_scripts": {
+      "type": "array",
+      "description": "Post-install scripts",
+      "items": {
+        "type": "string",
+        "examples": ["/cm/shared/scripts/post-install.sh"]
+      }
+    },
+    "kernel_parameters": {
+      "type": "string",
+      "description": "Default kernel boot parameters",
+      "examples": ["nvidia-drm.modeset=1 iommu=pt"]
+    },
+    "boot_loader": {
+      "type": "string",
+      "description": "Bootloader configuration",
+      "examples": ["grub2"]
+    },
+    "fsmounts": {
+      "type": "string",
+      "description": "Filesystem mount configuration (XML format)",
+      "contentMediaType": "application/xml"
+    },
+    "modules": {
+      "type": "array",
+      "description": "Kernel modules to load",
+      "items": {
+        "type": "string",
+        "examples": ["nvidia", "nvidia-uvm", "nvidia-modeset"]
+      }
+    },
+    "roles": {
+      "type": "array",
+      "description": "Default roles for nodes in category",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gpu_settings": {
+      "type": "object",
+      "description": "GPU-specific configuration",
+      "properties": {
+        "enable_persistence_mode": {"type": "boolean"},
+        "compute_mode": {"type": "string", "enum": ["DEFAULT", "EXCLUSIVE_THREAD", "EXCLUSIVE_PROCESS"]}
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "gpu-worker-custom",
+      "software_image_proxy": "550e8400-e29b-41d4-a716-446655440000",
+      "install_mode": "AUTO",
+      "kernel_parameters": "nvidia-drm.modeset=1 iommu=pt",
+      "boot_loader": "grub2",
+      "modules": ["nvidia", "nvidia-uvm"],
+      "roles": ["compute", "gpu"],
+      "gpu_settings": {
+        "enable_persistence_mode": true,
+        "compute_mode": "DEFAULT"
+      }
+    }
+  ]
+}
