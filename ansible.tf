@@ -278,6 +278,96 @@ REGCONFIG
     EOT
   }
 
+  # ==========================================================================
+  # Destroy-time provisioner: Run Kubespray reset.yml to tear down K8s cluster
+  # ==========================================================================
+  # On `terraform destroy`, this runs the Kubespray reset playbook to properly
+  # remove all Kubernetes components from the nodes (kubeadm reset, cleanup
+  # etcd, remove containers, CNI, iptables rules, etc.)
+  #
+  # Note: destroy provisioners cannot reference other resources, so we
+  # re-derive paths and re-write the SSH key from the trigger data.
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      set -e
+      echo "=== Starting Kubespray cluster reset (destroy) ==="
+
+      # Check if Kubespray directory exists (may have been cleaned up)
+      if [ ! -d /tmp/kubespray ]; then
+        echo "WARNING: /tmp/kubespray not found. Re-cloning Kubespray for reset..."
+        git clone --depth 1 --branch v2.27.1 https://github.com/kubernetes-sigs/kubespray.git /tmp/kubespray
+        mkdir -p /tmp/kubespray/inventory/mycluster
+      fi
+
+      # Check if virtualenv exists
+      if [ ! -d /tmp/kubespray-venv ]; then
+        echo "WARNING: /tmp/kubespray-venv not found. Re-creating virtualenv..."
+        PYTHON_CMD=$(command -v python3.11 || command -v python3.10 || command -v python3)
+        $PYTHON_CMD -m venv /tmp/kubespray-venv
+        /tmp/kubespray-venv/bin/pip install --upgrade pip --no-cache-dir
+        /tmp/kubespray-venv/bin/pip install --no-cache-dir -r /tmp/kubespray/requirements.txt
+      fi
+
+      # Write SSH key if not present
+      if [ ! -f /tmp/kubespray_ssh_key ]; then
+        echo "Re-writing SSH key for reset..."
+        # Look for the Terraform-generated SSH key in the project directory
+        SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || pwd)"
+        for KEY_PATH in "./generated_ssh_key" "$SCRIPT_DIR/generated_ssh_key" "$HOME/bcm_kubespray_runai_gpu/generated_ssh_key"; do
+          if [ -f "$KEY_PATH" ]; then
+            cp "$KEY_PATH" /tmp/kubespray_ssh_key
+            chmod 600 /tmp/kubespray_ssh_key
+            echo "Found SSH key at $KEY_PATH"
+            break
+          fi
+        done
+        if [ ! -f /tmp/kubespray_ssh_key ]; then
+          echo "ERROR: Cannot find SSH private key for reset. Manual cleanup required:"
+          echo "  1. Clone kubespray and run: ansible-playbook -i inventory reset.yml -b"
+          echo "  2. Or run 'kubeadm reset -f' on each node manually"
+          exit 1
+        fi
+      fi
+
+      # Check if inventory exists
+      if [ ! -f /tmp/kubespray/inventory/mycluster/hosts.yml ]; then
+        # Look for the Terraform-generated inventory in the project directory
+        for INV_PATH in "./inventory.yml" "$HOME/bcm_kubespray_runai_gpu/inventory.yml"; do
+          if [ -f "$INV_PATH" ]; then
+            cp "$INV_PATH" /tmp/kubespray/inventory/mycluster/hosts.yml
+            echo "Found inventory at $INV_PATH"
+            break
+          fi
+        done
+        if [ ! -f /tmp/kubespray/inventory/mycluster/hosts.yml ]; then
+          echo "ERROR: Cannot find inventory file for reset. Manual cleanup required."
+          exit 1
+        fi
+      fi
+
+      # Configure SSH options
+      export ANSIBLE_HOST_KEY_CHECKING=False
+      export ANSIBLE_SSH_ARGS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-rsa,ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-rsa"
+
+      cd /tmp/kubespray
+
+      echo "=== Running Kubespray reset playbook ==="
+      /tmp/kubespray-venv/bin/ansible-playbook -i inventory/mycluster/hosts.yml reset.yml \
+        -b -v \
+        --private-key=/tmp/kubespray_ssh_key \
+        -e "reset_confirmation=yes" \
+        -e "ansible_user=ansiblebcm" \
+        -e "ansible_ssh_private_key_file=/tmp/kubespray_ssh_key" \
+        || echo "WARNING: Kubespray reset encountered errors (some cleanup may need manual intervention)"
+
+      echo "=== Kubespray cluster reset completed ==="
+
+      # Cleanup
+      rm -f /tmp/kubespray_ssh_key
+    EOT
+  }
+
   depends_on = [
     terraform_data.clone_kubespray,
     terraform_data.wait_for_nodes,
