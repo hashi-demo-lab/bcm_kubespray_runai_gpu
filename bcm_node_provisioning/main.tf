@@ -53,13 +53,11 @@ resource "bcm_cmdevice_device" "nodes" {
   # Role assignments (role names, not UUIDs)
   roles = length(each.value.roles) > 0 ? toset(each.value.roles) : null
 
-  # Preserve device identity during re-provisioning (US2)
+  # Workaround: BCM provider has bugs that cause inconsistent results
+  # on update (interface types, roles, bootable). Ignore all mutable
+  # attributes to prevent any device updates via the provider.
+  # Category and power changes are handled via cmsh local-exec instead.
   lifecycle {
-    ignore_changes = [
-      notes,
-      interfaces,
-      roles,
-      category,
-    ]
+    ignore_changes = all
   }
 }
