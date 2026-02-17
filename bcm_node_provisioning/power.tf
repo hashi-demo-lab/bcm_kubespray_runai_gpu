@@ -1,7 +1,24 @@
 # BCM Node Provisioning Module - Power Actions
 #
-# IPMI power control via cmsh local-exec.
+# Category assignment and IPMI power control via cmsh local-exec.
+# Workaround for BCM provider bugs with interface types.
 # Power actions are gated by var.enable_power_action for safety.
+
+# ==========================================================================
+# CATEGORY UPDATE — via cmsh (workaround for provider powerControl bug)
+# ==========================================================================
+
+resource "terraform_data" "category_update" {
+  for_each = var.nodes
+
+  triggers_replace = {
+    category = each.value.category
+  }
+
+  provisioner "local-exec" {
+    command = "cmsh -c 'device; use ${each.key}; set category ${each.value.category}; commit'"
+  }
+}
 
 # ==========================================================================
 # POWER ACTIONS — trigger via cmsh (local-exec workaround for provider bugs)
@@ -23,6 +40,8 @@ locals {
 resource "terraform_data" "power_action" {
   count = var.enable_power_action && length(local.power_action_nodes) > 0 ? 1 : 0
 
+  depends_on = [terraform_data.category_update]
+
   triggers_replace = {
     action    = var.power_action
     nodes     = local.power_node_list
@@ -33,16 +52,3 @@ resource "terraform_data" "power_action" {
     command = "cmsh -c 'device; power -n ${local.power_node_list} ${local.cmsh_power_action}'"
   }
 }
-
-# ==========================================================================
-# NATIVE POWER ACTIONS — requires Terraform >= 1.14.0 (future use)
-# ==========================================================================
-
-# action "bcm_cmdevice_power" "provision" {
-#   for_each = local.power_action_nodes
-#
-#   device_id           = bcm_cmdevice_device.nodes[each.key].uuid
-#   power_action        = var.power_action
-#   wait_for_completion = true
-#   timeout             = var.power_action_timeout
-# }

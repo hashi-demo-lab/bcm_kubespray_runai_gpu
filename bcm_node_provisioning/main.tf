@@ -59,6 +59,7 @@ resource "bcm_cmdevice_device" "nodes" {
       notes,
       interfaces,
       roles,
+      category,
     ]
   }
 }
