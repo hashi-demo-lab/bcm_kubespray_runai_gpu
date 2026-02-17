@@ -21,7 +21,7 @@ resource "bcm_cmdevice_device" "nodes" {
   dynamic "interfaces" {
     for_each = each.value.ipmi_ip != null ? [1] : []
     content {
-      name    = "ipmi"
+      name    = "ipmi0"
       type    = "bmc"
       ip      = each.value.ipmi_ip
       network = local.oob_network_id
