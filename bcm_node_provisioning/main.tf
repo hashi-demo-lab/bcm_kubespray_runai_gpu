@@ -22,7 +22,7 @@ resource "bcm_cmdevice_device" "nodes" {
     for_each = each.value.ipmi_ip != null ? [1] : []
     content {
       name    = "ipmi0"
-      type    = "bmc"
+      type    = "physical"
       ip      = each.value.ipmi_ip
       network = local.oob_network_id
     }
@@ -34,7 +34,6 @@ resource "bcm_cmdevice_device" "nodes" {
     type     = "physical"
     mac      = each.value.mac
     network  = local.management_network_id
-    bootable = true
     ip       = each.value.management_ip
   }
 
@@ -52,7 +51,7 @@ resource "bcm_cmdevice_device" "nodes" {
   }
 
   # Role assignments (role names, not UUIDs)
-  roles = toset(each.value.roles)
+  roles = length(each.value.roles) > 0 ? toset(each.value.roles) : null
 
   # Preserve device identity during re-provisioning (US2)
   lifecycle {
