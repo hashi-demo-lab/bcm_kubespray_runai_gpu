@@ -13,7 +13,7 @@ resource "bcm_cmdevice_device" "nodes" {
   mac                = each.value.mac
   category           = local.category_uuid_map[each.value.category]
   management_network = local.management_network_id
-  power_control      = "ipmi"
+  power_control      = "ipmi0"
   notes              = "Managed by Terraform - bcm_node_provisioning module"
 
   # BMC interface (only when ipmi_ip is provided)
@@ -30,7 +30,7 @@ resource "bcm_cmdevice_device" "nodes" {
 
   # Primary physical interface — bootable for PXE
   interfaces {
-    name     = "eth0"
+    name     = "BOOTIF"
     type     = "physical"
     mac      = each.value.mac
     network  = local.management_network_id
