@@ -2,9 +2,11 @@
 #
 # Lookups for pre-existing BCM infrastructure: images, networks, categories.
 
-# Software images — filter by exact name
+# Software images — filter by name pattern (substring match)
 data "bcm_cmpart_softwareimages" "target" {
-  name = var.software_image_name
+  filter {
+    name_pattern = var.software_image_name
+  }
 }
 
 # Networks — all (client-side filter in locals.tf)
