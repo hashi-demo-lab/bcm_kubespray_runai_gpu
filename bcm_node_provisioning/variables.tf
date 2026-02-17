@@ -30,7 +30,7 @@ variable "management_network_name" {
 variable "oob_network_name" {
   description = "Name of the BCM out-of-band management network for IPMI/BMC access. Must match an existing network name exactly (case-sensitive)."
   type        = string
-  default     = "oob-mgmt"
+  default     = "ipminet"
 
   validation {
     condition     = length(var.oob_network_name) > 0
@@ -70,29 +70,42 @@ variable "nodes" {
     
     Each node must include:
     - mac: Primary network interface MAC address (format: "00:11:22:33:44:55") for PXE boot
-    - bmc_mac: BMC interface MAC address (format: "00:11:22:33:44:55")
-    - ipmi_ip: BMC/IPMI IP address (must be reachable from BCM headnode)
     - category: Provisioning category name (existing or custom)
-    - management_ip: Static IP for management interface (optional, uses DHCP if omitted)
-    - interfaces: Map of additional network interfaces (optional)
     - roles: List of role names to assign (e.g., ["compute", "gpu"], ["control_plane"])
     
-    Example:
+    Optional per-node fields:
+    - ipmi_ip: BMC/IPMI IP address (must be reachable from BCM headnode) — needed for IPMI power control
+    - management_ip: Static IP for management interface (uses DHCP if omitted)
+    - interfaces: Map of additional network interfaces
+    
+    Note: BMC MAC address is NOT required by the BCM API for BMC interfaces.
+    The API only needs the IPMI IP and network reference. MAC is only required
+    for physical interfaces (PXE boot NIC).
+    
+    Example (minimal — without IPMI):
     {
       "dgx-05" = {
-        mac            = "94:6D:AE:AA:13:C9"
-        bmc_mac        = "94:6D:AE:AA:13:CA"
-        ipmi_ip        = "10.229.10.109"
-        category       = "dgx-h100"
+        mac            = "10:70:FD:BD:73:4D"
+        category       = "default"
         management_ip  = "10.184.162.109"
-        roles          = ["compute", "gpu"]
+        roles          = ["compute"]
+      }
+    }
+    
+    Example (full — with IPMI):
+    {
+      "dgx-05" = {
+        mac            = "10:70:FD:BD:73:4D"
+        ipmi_ip        = "10.229.10.11"
+        category       = "default"
+        management_ip  = "10.184.162.109"
+        roles          = ["compute"]
       }
     }
   EOT
   type = map(object({
     mac           = string
-    bmc_mac       = string
-    ipmi_ip       = string
+    ipmi_ip       = optional(string)
     category      = string
     management_ip = optional(string)
     interfaces = optional(map(object({
@@ -121,17 +134,9 @@ variable "nodes" {
   validation {
     condition = alltrue([
       for hostname, config in var.nodes :
-      can(regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$", config.bmc_mac))
+      config.ipmi_ip == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", config.ipmi_ip))
     ])
-    error_message = "All BMC MAC addresses must be in format: 00:11:22:33:44:55"
-  }
-
-  validation {
-    condition = alltrue([
-      for hostname, config in var.nodes :
-      can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", config.ipmi_ip))
-    ])
-    error_message = "All IPMI IP addresses must be valid IPv4 addresses."
+    error_message = "IPMI IP addresses, when provided, must be valid IPv4 addresses."
   }
 
   validation {
@@ -139,10 +144,6 @@ variable "nodes" {
     error_message = "Duplicate primary MAC addresses detected. Each node must have a unique MAC address."
   }
 
-  validation {
-    condition     = length(distinct([for h, n in var.nodes : n.bmc_mac])) == length(var.nodes)
-    error_message = "Duplicate BMC MAC addresses detected. Each node must have a unique BMC MAC address."
-  }
 }
 
 variable "enable_power_action" {
