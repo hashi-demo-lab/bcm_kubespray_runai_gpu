@@ -22,7 +22,7 @@ resource "bcm_cmdevice_device" "nodes" {
     for_each = each.value.ipmi_ip != null ? [1] : []
     content {
       name    = "ipmi0"
-      type    = "physical"
+      type    = "bmc"
       ip      = each.value.ipmi_ip
       network = local.oob_network_id
     }
@@ -57,6 +57,8 @@ resource "bcm_cmdevice_device" "nodes" {
   lifecycle {
     ignore_changes = [
       notes,
+      interfaces,
+      roles,
     ]
   }
 }
