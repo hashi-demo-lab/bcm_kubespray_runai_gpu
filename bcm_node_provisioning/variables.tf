@@ -28,7 +28,14 @@ variable "management_network_name" {
 }
 
 variable "oob_network_name" {
-  description = "Name of the BCM out-of-band management network for IPMI/BMC access. Must match an existing network name exactly (case-sensitive)."
+  description = <<-EOT
+    Name of the BCM-registered out-of-band network (e.g., "ipminet").
+
+    ARCHITECTURE NOTE: This value is sent to the BCM head node API as part of
+    device registration so BCM knows which network each node's IPMI interface
+    is on. Terraform NEVER contacts IPMI/BMC addresses (10.229.10.x) directly.
+    All communication flows exclusively through the BCM head node API endpoint.
+  EOT
   type        = string
   default     = "ipminet"
 
@@ -38,27 +45,10 @@ variable "oob_network_name" {
   }
 }
 
-variable "bmc_username" {
-  description = "Username for BMC/IPMI authentication. SECURITY: Mark as sensitive in all uses. Do not hardcode - use environment variables or secure secret management."
-  type        = string
-  sensitive   = true
-
-  validation {
-    condition     = length(var.bmc_username) > 0
-    error_message = "BMC username cannot be empty."
-  }
-}
-
-variable "bmc_password" {
-  description = "Password for BMC/IPMI authentication. SECURITY: Mark as sensitive in all uses. Do not hardcode - use environment variables or secure secret management."
-  type        = string
-  sensitive   = true
-
-  validation {
-    condition     = length(var.bmc_password) >= 8
-    error_message = "BMC password must be at least 8 characters for security requirements."
-  }
-}
+# NOTE: bmc_username / bmc_password are intentionally absent.
+# Terraform does NOT authenticate directly to node IPMI/BMC interfaces.
+# The BCM head node manages all IPMI power and provisioning operations
+# internally. Only the single BCM head node API endpoint is needed.
 
 # ============================================================================
 # USER STORY 1: Initial Bare Metal Node Provisioning
@@ -71,11 +61,11 @@ variable "nodes" {
     Each node must include:
     - mac: Primary network interface MAC address (format: "00:11:22:33:44:55") for PXE boot
     - category: Provisioning category name (existing or custom)
+    - management_ip: Static IP on the management network (REQUIRED — prevents DHCP fallback)
     - roles: List of role names to assign (e.g., ["compute", "gpu"], ["control_plane"])
     
     Optional per-node fields:
     - ipmi_ip: BMC/IPMI IP address (must be reachable from BCM headnode) — needed for IPMI power control
-    - management_ip: Static IP for management interface (uses DHCP if omitted)
     - interfaces: Map of additional network interfaces
     
     Note: BMC MAC address is NOT required by the BCM API for BMC interfaces.
@@ -107,7 +97,7 @@ variable "nodes" {
     mac           = string
     ipmi_ip       = optional(string)
     category      = string
-    management_ip = optional(string)
+    management_ip = string
     interfaces = optional(map(object({
       type     = string
       mac      = optional(string)
@@ -137,6 +127,14 @@ variable "nodes" {
       config.ipmi_ip == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", config.ipmi_ip))
     ])
     error_message = "IPMI IP addresses, when provided, must be valid IPv4 addresses."
+  }
+
+  validation {
+    condition = alltrue([
+      for hostname, config in var.nodes :
+      can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", config.management_ip))
+    ])
+    error_message = "All nodes must have a valid management_ip in IPv4 format. This field is required to prevent DHCP fallback."
   }
 
   validation {

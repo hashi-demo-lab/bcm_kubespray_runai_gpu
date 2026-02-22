@@ -43,9 +43,8 @@ resource "terraform_data" "power_action" {
   depends_on = [terraform_data.category_update]
 
   triggers_replace = {
-    action    = var.power_action
-    nodes     = local.power_node_list
-    timestamp = timestamp()
+    action = var.power_action
+    nodes  = local.power_node_list
   }
 
   provisioner "local-exec" {

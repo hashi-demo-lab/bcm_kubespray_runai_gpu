@@ -16,8 +16,11 @@ resource "bcm_cmdevice_device" "nodes" {
   power_control      = "ipmi0"
   notes              = "Managed by Terraform - bcm_node_provisioning module"
 
-  # BMC interface (only when ipmi_ip is provided)
-  # Note: BMC MAC is not required by the BCM API for BMC interfaces
+  # BMC interface registration — sent to the BCM head node API only.
+  # This tells BCM where each node's IPMI interface is so BCM can manage
+  # power control internally. Terraform NEVER contacts these IPs directly.
+  # The 10.229.10.x (ipminet) addresses are out-of-band and unreachable from
+  # Terraform; only the BCM head node communicates with them.
   dynamic "interfaces" {
     for_each = each.value.ipmi_ip != null ? [1] : []
     content {
@@ -28,13 +31,15 @@ resource "bcm_cmdevice_device" "nodes" {
     }
   }
 
-  # Primary physical interface — bootable for PXE
+  # Primary physical interface — bootable for PXE, static IP required
   interfaces {
     name     = "BOOTIF"
     type     = "physical"
     mac      = each.value.mac
     network  = local.management_network_id
     ip       = each.value.management_ip
+    dhcp     = false
+    bootable = true
   }
 
   # Additional interfaces from variable
