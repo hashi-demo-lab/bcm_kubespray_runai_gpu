@@ -27,33 +27,6 @@ variable "management_network_name" {
   }
 }
 
-variable "oob_network_name" {
-  description = <<-EOT
-    Name of the BCM-registered out-of-band network (e.g., "ipminet").
-
-    ARCHITECTURE NOTE: This value is sent to the BCM head node API as part of
-    device registration so BCM knows which network each node's IPMI interface
-    is on. Terraform NEVER contacts IPMI/BMC addresses (10.229.10.x) directly.
-    All communication flows exclusively through the BCM head node API endpoint.
-  EOT
-  type        = string
-  default     = "ipminet"
-
-  validation {
-    condition     = length(var.oob_network_name) > 0
-    error_message = "OOB network name cannot be empty."
-  }
-}
-
-# NOTE: bmc_username / bmc_password are intentionally absent.
-# Terraform does NOT authenticate directly to node IPMI/BMC interfaces.
-# The BCM head node manages all IPMI power and provisioning operations
-# internally. Only the single BCM head node API endpoint is needed.
-
-# ============================================================================
-# USER STORY 1: Initial Bare Metal Node Provisioning
-# ============================================================================
-
 variable "nodes" {
   description = <<-EOT
     Map of bare metal nodes to provision. Key = hostname, Value = node configuration object.
@@ -65,28 +38,17 @@ variable "nodes" {
     - roles: List of role names to assign (e.g., ["compute", "gpu"], ["control_plane"])
     
     Optional per-node fields:
-    - ipmi_ip: BMC/IPMI IP address (must be reachable from BCM headnode) — needed for IPMI power control
     - interfaces: Map of additional network interfaces
     
-    Note: BMC MAC address is NOT required by the BCM API for BMC interfaces.
-    The API only needs the IPMI IP and network reference. MAC is only required
-    for physical interfaces (PXE boot NIC).
+    Note: BMC/IPMI interfaces are managed by BCM natively. This module
+    imports existing nodes and does not create or modify BMC interfaces.
+    A separate node creation module will handle initial device provisioning
+    including BMC registration.
     
-    Example (minimal — without IPMI):
+    Example:
     {
       "dgx-05" = {
         mac            = "10:70:FD:BD:73:4D"
-        category       = "default"
-        management_ip  = "10.184.162.109"
-        roles          = ["compute"]
-      }
-    }
-    
-    Example (full — with IPMI):
-    {
-      "dgx-05" = {
-        mac            = "10:70:FD:BD:73:4D"
-        ipmi_ip        = "10.229.10.11"
         category       = "default"
         management_ip  = "10.184.162.109"
         roles          = ["compute"]
@@ -95,7 +57,6 @@ variable "nodes" {
   EOT
   type = map(object({
     mac           = string
-    ipmi_ip       = optional(string)
     category      = string
     management_ip = string
     interfaces = optional(map(object({
@@ -119,14 +80,6 @@ variable "nodes" {
       can(regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$", config.mac))
     ])
     error_message = "All node MAC addresses must be in format: 00:11:22:33:44:55"
-  }
-
-  validation {
-    condition = alltrue([
-      for hostname, config in var.nodes :
-      config.ipmi_ip == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", config.ipmi_ip))
-    ])
-    error_message = "IPMI IP addresses, when provided, must be valid IPv4 addresses."
   }
 
   validation {

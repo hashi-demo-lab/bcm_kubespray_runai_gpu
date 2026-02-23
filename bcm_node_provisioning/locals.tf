@@ -27,16 +27,6 @@ locals {
     : null
   )
 
-  oob_network_matches = [
-    for net in data.bcm_cmnet_networks.all.networks :
-    net if net.name == var.oob_network_name
-  ]
-  oob_network_id = (
-    length(local.oob_network_matches) > 0
-    ? local.oob_network_matches[0].id
-    : null
-  )
-
   # ==========================================================================
   # CATEGORY UUID LOOKUPS
   # ==========================================================================

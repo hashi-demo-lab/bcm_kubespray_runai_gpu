@@ -47,14 +47,6 @@ output "node_status" {
   value       = local.node_status
 }
 
-output "node_bmc_ips" {
-  description = "Map of hostname to BMC/IPMI IP address for operational reference"
-  value = {
-    for hostname, config in var.nodes :
-    hostname => config.ipmi_ip
-  }
-}
-
 output "provisioning_summary" {
   description = "Summary counts: total, successful, failed, not_found"
   value = {
