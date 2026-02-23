@@ -131,39 +131,135 @@ Step 4 is what failed — the original static IPs had been overwritten with DHCP
 
 ---
 
-## Remediation Plan
+## Remediation — Implemented Changes (2026-02-23)
 
-### Step 1: Clean up state
-```bash
-terraform state rm 'terraform_data.power_action[0]'
-# Also remove category_update state entries to prevent cmsh re-fire
-terraform state rm 'terraform_data.category_update["cpu-03"]'
-terraform state rm 'terraform_data.category_update["cpu-05"]'
-terraform state rm 'terraform_data.category_update["cpu-06"]'
+### Summary
+
+Four commits on branch `001-bcm-node-provisioning` address the root cause and add operational safety:
+
+### 1. Prevent DHCP override on BOOTIF interface (`1e7de6c`)
+
+| File | Change | Why |
+|------|--------|-----|
+| `main.tf` | Added `dhcp = false` and `bootable = true` to BOOTIF interface block | Explicitly prevents BCM from falling back to DHCP regardless of other parameters |
+| `variables.tf` | Changed `management_ip` from `optional(string)` to `string` (required) | Root cause fix — Terraform will refuse to plan if any node is missing a static IP |
+| `variables.tf` | Added IPv4 format validation for `management_ip` | Catches invalid IPs before they reach the BCM API |
+| `variables.tf` | Fixed corrupted description (heredoc content accidentally inserted) | Restored correct variable documentation |
+| `power.tf` | Removed `timestamp = timestamp()` from `triggers_replace` | Eliminates the time bomb — power actions only fire when action or node list changes |
+| `incident-analysis.md` | Updated root cause to reflect "Terraform overwrote static IPs" | Corrected narrative: nodes HAD static IPs, Terraform replaced them with DHCP |
+
+### 2. Auto-import existing BCM nodes (`a748cc9`)
+
+| File | Change | Why |
+|------|--------|-----|
+| `main.tf` | Added `data.bcm_cmdevice_nodes.existing` data source | Queries BCM for all existing nodes at plan time |
+| `main.tf` | Added `import` block with `for_each` | Automatically imports existing BCM nodes into Terraform state by UUID, preventing `addDevice` from overwriting existing configs |
+
+**How it works:**
+```
+Plan phase:
+  1. data.bcm_cmdevice_nodes.existing → queries BCM API for all nodes
+  2. local.existing_node_ids → maps hostname → UUID
+  3. import block → for each node in var.nodes that exists in BCM
+     but NOT in Terraform state, import it by UUID
+  4. lifecycle { ignore_changes = all } → no modifications to imported device
 ```
 
-### Step 2: Code changes
+This eliminates the scenario where Terraform sends `addDevice` with `ip = null` and overwrites an existing static IP assignment with DHCP.
 
-| File | Change |
-|------|--------|
-| `main.tf` | Remove ipmi0 dynamic interface block. Keep `power_control = "ipmi0"` attribute. |
-| `power.tf` | Remove `timestamp()` from `triggers_replace`. Keep power action resource. |
-| `variables.tf` | Make `management_ip` required (not optional). Remove `oob_network_name`, `bmc_username`, `bmc_password`, `ipmi_ip` from schema. |
-| `locals.tf` | Remove `oob_network_matches`, `oob_network_id`. |
-| `outputs.tf` | Remove `node_bmc_ips` output. |
-| `sandbox.auto.tfvars` | Add `management_ip` to each node. Remove `ipmi_ip`, `bmc_*`, `oob_network_name`. |
+**State refresh behavior:**
+- Every `terraform plan` calls the provider's `Read()` function → queries BCM → updates state with current values
+- `ignore_changes = all` only prevents Terraform from *pushing changes back* to BCM
+- State always reflects BCM reality — outputs show current values
+- If BCM changes a value externally (e.g., category in BCM UI), state updates on next plan
 
-### Step 3: Validate
-```bash
-terraform validate
-terraform plan  # Expect: no changes (lifecycle ignore_changes = all)
+### 3. Selective node targeting (`3642b77`)
+
+| File | Change | Why |
+|------|--------|-----|
+| `variables.tf` | Added `target_nodes` variable (list of hostnames, default `[]`) | Allows targeting specific nodes for actions without removing others from tfvars |
+| `variables.tf` | Added validation: all `target_nodes` must exist in `var.nodes` | Prevents typos from silently targeting no nodes |
+| `locals.tf` | Added `local.targeted_nodes` computed from `target_nodes` | Filters `var.nodes` to selected subset; empty list = all nodes |
+| `power.tf` | Changed `category_update` to iterate `local.targeted_nodes` | Category updates only apply to targeted nodes |
+
+**Operational model:**
+```
+var.nodes         = { cpu-03, cpu-05, cpu-06 }   ← all nodes always defined
+var.target_nodes  = ["cpu-03"]                    ← only cpu-03 gets actions
+
+Result:
+  Device resources:  imported for ALL 3 nodes (auto-import from BCM)
+  Category updates:  only cpu-03
+  Power actions:     only cpu-03 (when enable_power_action = true)
+  State refresh:     ALL 3 nodes refreshed from BCM on every plan
 ```
 
-### Step 4: Verify connectivity
+### 4. Remove IPMI/OOB from reprovisioning module (`2bbefb1`)
+
+| File | Change | Why |
+|------|--------|-----|
+| `main.tf` | Removed ipmi0 dynamic interface block | BMC interfaces are managed by BCM natively; imported as-is via auto-import |
+| `variables.tf` | Removed `ipmi_ip` from node schema | Not needed — BCM already has BMC config; import reads it |
+| `variables.tf` | Removed `oob_network_name` variable | No longer referenced after ipmi0 block removal |
+| `locals.tf` | Removed `oob_network_matches` and `oob_network_id` locals | No longer referenced |
+| `outputs.tf` | Removed `node_bmc_ips` output | IPMI IPs are BCM-internal; not relevant to reprovisioning |
+
+**Design decision:** This module is scoped to **reprovisioning existing nodes** — not creating new ones. All nodes are assumed to already exist in BCM. A separate node creation module will be built in a future phase for initial device provisioning, including BMC interface registration.
+
+### State cleanup
+
+The stale `terraform_data.power_action[0]` and orphaned cpu-05/cpu-06 resources were removed from state via direct state file replacement (local backend lock bug prevented `terraform state rm`):
+
 ```bash
-ping -c1 10.184.162.102  # cpu-03
-ping -c1 10.184.162.104  # cpu-05
-ping -c1 10.184.162.121  # cpu-06
+terraform state pull > state.json
+cat state.json | jq 'del(.resources[] | select(...))' > state_clean.json
+cat state_clean.json | jq '.serial += 1' > terraform.tfstate
+```
+
+### sandbox.auto.tfvars (final configuration)
+
+```hcl
+bcm_endpoint             = "https://localhost:8081"
+bcm_username             = "ibm"
+bcm_password             = "<redacted>"
+bcm_insecure_skip_verify = true
+bcm_timeout              = 30
+
+nodes = {
+  "cpu-03" = {
+    mac           = "B8:59:9F:E4:22:12"
+    category      = "default"
+    management_ip = "10.184.162.102"
+    roles         = []
+  }
+  "cpu-05" = {
+    mac           = "B8:CE:F6:D9:47:BC"
+    category      = "default"
+    management_ip = "10.184.162.104"
+    roles         = []
+  }
+  "cpu-06" = {
+    mac           = "98:03:9B:17:E7:C6"
+    category      = "default"
+    management_ip = "10.184.162.121"
+    roles         = []
+  }
+}
+
+target_nodes            = ["cpu-03"]
+management_network_name = "dgxnet"
+software_image_name     = "ubuntu2204-4"
+enable_power_action     = false
+```
+
+### Validation steps
+
+```bash
+git pull origin 001-bcm-node-provisioning
+# Update sandbox.auto.tfvars (remove ipmi_ip, oob_network_name; add target_nodes)
+terraform plan -lock=false
+# Expected: import 3 nodes, category_update for cpu-03 only, 0 device changes
+terraform apply -lock=false
 ```
 
 ---
@@ -171,7 +267,8 @@ ping -c1 10.184.162.121  # cpu-06
 ## Key Takeaways
 
 1. **Static IPs are non-negotiable** — BCM's own default is static. DHCP on the management interface is a design error.
-2. **Terraform should not manage OOB interfaces** — ipmi0 is BCM-internal infrastructure.
+2. **Auto-import prevents state drift** — existing BCM nodes are adopted, never recreated.
 3. **Never use `timestamp()` in triggers** — it turns any gated resource into a time bomb that fires on every apply.
-4. **Power actions need static IPs as a prerequisite** — the reprovisioning flow depends on step 4 (CMDaemon reconnect via static IP).
-5. **All BCM API calls go through the head node** — Terraform never talks to individual nodes directly.
+4. **Target nodes for actions, not for existence** — all nodes stay defined; `target_nodes` controls which ones receive operations.
+5. **Power actions need static IPs as a prerequisite** — the reprovisioning flow depends on step 4 (CMDaemon reconnect via static IP).
+6. **All BCM API calls go through the head node** — Terraform never talks to individual nodes directly.
