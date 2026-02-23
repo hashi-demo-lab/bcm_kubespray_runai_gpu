@@ -144,6 +144,34 @@ variable "nodes" {
 
 }
 
+variable "target_nodes" {
+  description = <<-EOT
+    List of node hostnames to target for power and category actions.
+    
+    Default: [] (all nodes in var.nodes are targeted)
+    
+    When set, only the listed nodes will receive:
+    - Category updates (cmsh set category)
+    - Power actions (when enable_power_action = true)
+    
+    Device resources are ALWAYS created for ALL nodes in var.nodes
+    regardless of this setting. This only controls which nodes are
+    acted upon during provisioning operations.
+    
+    Example: ["cpu-03"] — only cpu-03 gets power cycled/category updated
+  EOT
+  type    = list(string)
+  default = []
+
+  validation {
+    condition = alltrue([
+      for name in var.target_nodes :
+      contains(keys(var.nodes), name)
+    ])
+    error_message = "All target_nodes must be hostnames defined in var.nodes."
+  }
+}
+
 variable "enable_power_action" {
   description = <<-EOT
     SAFETY GATE: Enable IPMI power actions (power on/off/cycle). 

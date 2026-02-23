@@ -9,7 +9,7 @@
 # ==========================================================================
 
 resource "terraform_data" "category_update" {
-  for_each = var.nodes
+  for_each = local.targeted_nodes
 
   triggers_replace = {
     category = each.value.category
