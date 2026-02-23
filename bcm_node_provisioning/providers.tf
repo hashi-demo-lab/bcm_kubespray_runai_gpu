@@ -3,6 +3,10 @@
 # This file enables the bcm_node_provisioning module to be tested
 # independently without the root module.
 
+# ALL Terraform requests go to the BCM head node API (bcm_endpoint) only.
+# The BCM head node distributes work to physical nodes internally.
+# Terraform never contacts individual node BMC/IPMI interfaces or the
+# out-of-band management network (10.229.10.0/24) directly.
 provider "bcm" {
   endpoint             = var.bcm_endpoint
   username             = var.bcm_username
