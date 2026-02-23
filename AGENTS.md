@@ -83,6 +83,18 @@ Stage 3: Platform Services (Helm)
 5. Skip security validation
 6. Fall back to public modules without approval
 7. Use MCP `create_run` (causes "Configuration version missing" errors)
+8. Reference the local provider source at `/Users/randykeener/Github/terraform-provider-bcm/` — it is stale and must not be used
+9. Create workarounds (cmsh local-exec, terraform_data hacks, shell scripts) for missing provider features — instead, document what the provider needs and add to `specs/001-bcm-node-provisioning/provider-gap-analysis.md`
+
+## BCM Provider Source
+
+The authoritative source for the BCM Terraform provider is the GitHub repository:
+**https://github.com/hashi-demo-lab/terraform-provider-bcm** (main branch)
+
+- ALWAYS use GitHub MCP tools (`get_file_contents`, `search_code`) to read provider source
+- NEVER read from the local clone at `/Users/randykeener/Github/terraform-provider-bcm/`
+- The local clone may be out of date and MUST NOT be used for schema analysis, gap analysis, or any provider-related decisions
+- Provider gap analysis is documented in `specs/001-bcm-node-provisioning/provider-gap-analysis.md`
 
 ## MCP Tools Priority
 
