@@ -3,6 +3,34 @@
 # Device resources for bare metal node provisioning.
 
 # ==========================================================================
+# AUTO-IMPORT — adopt existing BCM nodes into Terraform state
+# ==========================================================================
+# Queries BCM for all existing nodes, then generates import blocks for any
+# node in var.nodes that already exists in BCM but not in Terraform state.
+# This prevents addDevice from failing on duplicate hostnames and avoids
+# overwriting existing node configurations (e.g., static IPs → DHCP).
+
+data "bcm_cmdevice_nodes" "existing" {}
+
+locals {
+  # Map existing BCM nodes by hostname → UUID for import lookup
+  existing_node_ids = {
+    for node in try(data.bcm_cmdevice_nodes.existing.nodes, []) :
+    node.hostname => node.id
+  }
+}
+
+import {
+  for_each = {
+    for hostname, config in var.nodes :
+    hostname => local.existing_node_ids[hostname]
+    if contains(keys(local.existing_node_ids), hostname)
+  }
+  to = bcm_cmdevice_device.nodes[each.key]
+  id = each.value
+}
+
+# ==========================================================================
 # DEVICE RESOURCES — one per node in var.nodes
 # ==========================================================================
 
