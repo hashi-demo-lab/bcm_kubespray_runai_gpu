@@ -47,17 +47,6 @@ locals {
   # Ordered list of node hostnames (for sequential provisioning)
   ordered_node_keys = sort(keys(var.nodes))
 
-  # Targeted nodes — subset of var.nodes selected for actions.
-  # If target_nodes is empty, all nodes are targeted.
-  targeted_nodes = length(var.target_nodes) > 0 ? {
-    for hostname, config in var.nodes :
-    hostname => config
-    if contains(var.target_nodes, hostname)
-  } : var.nodes
-
-  # Nodes eligible for power actions (targeted + enabled)
-  power_action_nodes = var.enable_power_action ? local.targeted_nodes : {}
-
   # ==========================================================================
   # NODE STATUS (post-provision query)
   # ==========================================================================

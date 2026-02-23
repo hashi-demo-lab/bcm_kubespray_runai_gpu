@@ -71,10 +71,9 @@ resource "bcm_cmdevice_device" "nodes" {
   # Role assignments (role names, not UUIDs)
   roles = length(each.value.roles) > 0 ? toset(each.value.roles) : null
 
-  # Workaround: BCM provider has bugs that cause inconsistent results
-  # on update (interface types, roles, bootable). Ignore all mutable
-  # attributes to prevent any device updates via the provider.
-  # Category and power changes are handled via cmsh local-exec instead.
+  # Workaround: BCM provider sends full entity on update (Gap 8),
+  # risking overwrite of ipmi0 and other BCM-managed fields.
+  # Remove once provider supports partial/read-modify-write updates.
   lifecycle {
     ignore_changes = all
   }

@@ -32,11 +32,6 @@ output "management_network_id" {
   value       = local.management_network_id
 }
 
-output "power_action_enabled" {
-  description = "Whether power actions were executed in this apply"
-  value       = var.enable_power_action
-}
-
 output "node_count" {
   description = "Total number of nodes managed by this module"
   value       = length(var.nodes)
