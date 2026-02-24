@@ -9,6 +9,15 @@ output "software_images_all" {
   value       = data.bcm_cmpart_softwareimages.all.images
 }
 
+output "software_image_ubuntu2204_4_ibm" {
+  description = "Filtered software image: ubuntu2204-4-ibm"
+  value = {
+    for img in data.bcm_cmpart_softwareimages.all.images :
+    img.name => img.uuid
+    if img.name == "ubuntu2204-4-ibm"
+  }
+}
+
 # ==========================================================================
 # CATEGORIES
 # ==========================================================================
