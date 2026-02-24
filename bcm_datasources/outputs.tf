@@ -4,10 +4,10 @@
 # SOFTWARE IMAGES
 # ==========================================================================
 
-output "software_images_all" {
-  description = "All software images registered in BCM"
-  value       = data.bcm_cmpart_softwareimages.all.images
-}
+# output "software_images_all" {
+#   description = "All software images registered in BCM"
+#   value       = data.bcm_cmpart_softwareimages.all.images
+# }
 
 output "software_image_ubuntu2204_4_ibm" {
   description = "Filtered software image: ubuntu2204-4-ibm"
